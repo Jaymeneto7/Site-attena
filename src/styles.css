@@ -1,1 +1,26 @@
-/* You can add global styles to this file, and also import other style files */
+/* src/styles.scss */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=Alumni+Sans&display=swap');
+
+:root {
+  --attena-green: #62984B;
+  --attena-dark-green: #395531;
+  --attena-orange: #CA5417;
+  --attena-deep-orange: #8C1D12;
+  --attena-blue: #07567B;
+  --attena-cream: #FCFAE5;
+
+  --font-sans: 'Alumni Sans', 'Montserrat', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --border-radius: 8px;
+  --container-max: 1200px;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background: var(--attena-cream);
+  color: #222;
+  margin: 0;
+  padding: 0;
+}
+
+a { color: var(--attena-blue); }
+button { border-radius: var(--border-radius); }

@@ -1,0 +1,98 @@
+<div class="admin-painel">
+
+  <header class="admin-header">
+    <div class="container">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="logo">A</div>
+          <div>
+            <h1>Painel Administrativo</h1>
+            <p>Gerenciamento de Produtos</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="btn-catalog" (click)="goToCatalog()">Ver Catálogo</button>
+          <button class="btn-logout" (click)="logout()">Sair</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="container">
+      <div class="admin-stats">
+        <div>
+          <h2>Produtos Cadastrados</h2>
+          <p>Total: {{ products.length }} produtos</p>
+        </div>
+
+        <button class="btn-add" (click)="openAddForm()">Novo Produto</button>
+      </div>
+
+      <div class="products-grid">
+        <div class="product-card" *ngFor="let product of products">
+          <img [src]="product.image" [alt]="product.name">
+          <div class="product-info">
+            <h3>{{ product.name }}</h3>
+            <p>{{ product.description }}</p>
+            <p class="product-price">R$ {{ product.price.toFixed(2) }}</p>
+            <p *ngIf="product.colors.length"><strong>Cores:</strong> {{ product.colors.join(', ') }}</p>
+            <p *ngIf="product.sizes.length"><strong>Tamanhos:</strong> {{ product.sizes.join(', ') }}</p>
+
+            <div class="product-actions">
+              <button (click)="openEditForm(product)">Editar</button>
+              <button (click)="deleteProduct(product.id)">Excluir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL DO FORMULÁRIO -->
+  <div class="product-form-overlay" *ngIf="showProductForm" (click)="closeForm()">
+    <div class="product-form" (click)="$event.stopPropagation()">
+      <button class="close-btn" (click)="closeForm()" type="button">×</button>
+      <h2>{{ editingProduct ? 'Editar Produto' : 'Novo Produto' }}</h2>
+
+      <form (ngSubmit)="submitForm()" #formRef="ngForm">
+        <div class="form-group">
+          <label>Nome do Produto</label>
+          <input type="text" [(ngModel)]="formData.name" name="name" required placeholder="Ex: Legging Essential">
+        </div>
+
+        <div class="form-group">
+          <label>Descrição</label>
+          <textarea [(ngModel)]="formData.description" name="description" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Preço (R$)</label>
+          <input type="number" step="0.01" [(ngModel)]="formData.price" name="price" required min="0">
+        </div>
+
+        <div class="form-group">
+          <label>Cores (separadas por vírgula)</label>
+          <input type="text" [(ngModel)]="formData.colorsInput" name="colors" placeholder="Preto, Azul">
+        </div>
+
+        <div class="form-group">
+          <label>Tamanhos (separados por vírgula)</label>
+          <input type="text" [(ngModel)]="formData.sizesInput" name="sizes" placeholder="P, M, G">
+        </div>
+
+        <div class="form-group">
+          <label>URL da Imagem</label>
+          <input type="text" [(ngModel)]="formData.image" name="image" placeholder="https://...">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" (click)="closeForm()">Cancelar</button>
+          <button type="submit">{{ editingProduct ? 'Atualizar' : 'Cadastrar' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

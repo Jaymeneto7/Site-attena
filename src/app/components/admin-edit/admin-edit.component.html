@@ -1,0 +1,22 @@
+<!-- File: src/app/components/admin-edit/admin-edit.component.html -->
+<div class="admin-edit" *ngIf="working">
+  <h3>Editar Produto</h3>
+
+  <label>Nome
+    <input [(ngModel)]="working.name" name="ae_name">
+  </label>
+
+  <label>Preço
+    <input type="number" step="0.01" [(ngModel)]="working.price" name="ae_price">
+  </label>
+
+  <div class="actions">
+    <button (click)="save()">Salvar</button>
+    <button (click)="cancel()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Se working for null mostra uma mensagem curta -->
+<div *ngIf="!working">
+  <p>Nenhum produto selecionado para edição.</p>
+</div>

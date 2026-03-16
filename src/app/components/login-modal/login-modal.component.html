@@ -1,0 +1,51 @@
+<!-- File: src/app/components/login-modal/login-modal.component.html -->
+<div class="login-modal-overlay" (click)="onClose()">
+  <div class="login-modal" (click)="onModalClick($event)">
+    <button class="close-btn" (click)="onClose()" type="button" aria-label="Fechar">
+      <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="login-header">
+      <div class="logo">A</div>
+      <h2>Acesso Administrativo</h2>
+      <p>Área restrita para administradores</p>
+    </div>
+
+    <form (ngSubmit)="login()" class="login-form" #formRef="ngForm">
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input
+          id="email"
+          type="email"
+          [(ngModel)]="loginData.email"
+          name="email"
+          placeholder="admin@attena.com"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input
+          id="password"
+          type="password"
+          [(ngModel)]="loginData.password"
+          name="password"
+          placeholder="••••••••"
+          required>
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <button type="submit" class="login-btn">Entrar</button>
+
+      <p class="login-hint">
+        Teste com: admin@attena.com / attena2024
+      </p>
+    </form>
+  </div>
+</div>

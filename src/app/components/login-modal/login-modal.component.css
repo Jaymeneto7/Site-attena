@@ -1,0 +1,130 @@
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.login-modal {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem;
+  position: relative;
+}
+
+.login-modal .close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: #9CA3AF;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-modal .close-btn:hover {
+  color: #6B7280;
+}
+
+.login-modal .close-btn .close-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.login-modal .login-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-modal .login-header .logo {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--attena-brown), var(--attena-blue));
+  color: white;
+  font-weight: bold;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.login-modal .login-header h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--attena-brown);
+  font-family: 'Alumni Sans', sans-serif;
+  margin: 0;
+}
+
+.login-modal .login-header p {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin-top: 0.5rem;
+}
+
+.login-modal .login-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.login-modal .login-form .form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--attena-blue);
+}
+
+.login-modal .login-form .form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--attena-brown);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.login-modal .login-form .form-group input:focus {
+  outline: none;
+  border-color: var(--attena-brown);
+  opacity: 0.5;
+}
+
+.login-modal .login-form .error-message {
+  color: var(--attena-red);
+  text-align: center;
+  margin: 1rem 0;
+  font-weight: 600;
+}
+
+.login-modal .login-form .login-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--attena-brown);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.login-modal .login-form .login-btn:hover {
+  opacity: 0.9;
+}
+
+.login-modal .login-form .login-hint {
+  font-size: 0.75rem;
+  text-align: center;
+  color: #6B7280;
+  margin-top: 1rem;
+}

@@ -1,0 +1,79 @@
+.admin-edit {
+  width: 100%;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-edit h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.admin-edit label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  gap: 6px;
+}
+
+.admin-edit input,
+.admin-edit textarea {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  font-size: 14px;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.admin-edit input:focus,
+.admin-edit textarea:focus {
+  outline: none;
+  border-color: #9b51e0;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.actions button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.actions button:first-child {
+  background-color: #9b51e0;
+  color: white;
+}
+
+.actions button:first-child:hover {
+  background-color: #7a3db6;
+}
+
+.actions button:last-child {
+  background-color: #e0e0e0;
+}
+
+.actions button:last-child:hover {
+  background-color: #cacaca;
+}
+
+.actions button:active {
+  transform: scale(0.97);
+}
