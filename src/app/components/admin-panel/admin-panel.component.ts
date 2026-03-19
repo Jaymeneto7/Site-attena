@@ -74,7 +74,7 @@ export class AdminPanelComponent implements OnInit {
     this.editingProduct = product;
     this.formData = {
       name: product.name,
-      description: product.description,
+      description: product.description ?? '', // ✅ corrigido: era possivelmente undefined
       price: product.price,
       colorsInput: (product.colors || []).join(','),
       sizesInput: (product.sizes || []).join(','),

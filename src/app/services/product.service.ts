@@ -1,78 +1,142 @@
-// File: src/app/services/product.service.ts
 import { Injectable } from '@angular/core';
 import { Product } from '../models/product.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ProductService {
-  /**
-   * Mock inicial — agora todos os IDs são string.
-   */
-  private products: Product[] = [
-    {
-      id: '1',
-      name: 'Legging Essential',
-      description: 'Legging de alta compressão com tecnologia anti-suor',
-      price: 159.90,
-      colors: ['Preto', 'Marrom', 'Verde'],
-      sizes: ['P', 'M', 'G', 'GG'],
-      image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400'
-    },
-    {
-      id: '2',
-      name: 'Top Power',
-      description: 'Top esportivo com suporte médio e design ergonômico',
-      price: 89.90,
-      colors: ['Azul', 'Vermelho, Bege'],
-      sizes: ['P', 'M', 'G'],
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400'
-    },
-    {
-      id: '3',
-      name: 'Conjunto Athena',
-      description: 'Conjunto completo: legging + top de alta performance',
-      price: 229.90,
-      colors: ['Marrom', 'Verde', 'Azul'],
-      sizes: ['P', 'M', 'G', 'GG'],
-      image: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=400'
-    },
-    {
-      id: '4',
-      name: 'Shorts Fitness',
-      description: 'Shorts cintura alta com bolso interno',
-      price: 119.90,
-      colors: ['Preto', 'Laranja', 'Azul'],
-      sizes: ['P', 'M', 'G', 'GG'],
-      image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400'
-    }
-  ];
+  private whatsappNumber = '5500000000000'; // Substituir pelo número real
 
-  /** Retorna a lista completa (clonada para evitar mutação externa). */
   getProducts(): Product[] {
-    return [...this.products];
+    return [
+      {
+        id: 1,
+        name: 'Top Sculpt',
+        category: 'tops',
+        categoryLabel: 'Top feminino',
+        price: 129,
+        badge: 'novo',
+        sizes: [
+          { label: 'P', available: true },
+          { label: 'M', available: true },
+          { label: 'G', available: false },
+          { label: 'GG', available: true },
+        ],
+        emoji: '🩱',
+        bgColor: '#f0ede0',
+        whatsappMessage: 'Olá! Tenho interesse no *Top Sculpt* (R$129). Poderia me ajudar?',
+      },
+      {
+        id: 2,
+        name: 'Legging Power',
+        category: 'leggings',
+        categoryLabel: 'Legging feminina',
+        price: 189,
+        badge: 'hot',
+        sizes: [
+          { label: 'P', available: true },
+          { label: 'M', available: true },
+          { label: 'G', available: true },
+          { label: 'GG', available: false },
+        ],
+        emoji: '🩲',
+        bgColor: '#eaf0ea',
+        whatsappMessage: 'Olá! Tenho interesse na *Legging Power* (R$189). Poderia me ajudar?',
+      },
+      {
+        id: 3,
+        name: 'Dry Fit Masculino',
+        category: 'masculino',
+        categoryLabel: 'Camiseta masculina',
+        price: 89,
+        originalPrice: 129,
+        badge: 'sale',
+        sizes: [
+          { label: 'P', available: false },
+          { label: 'M', available: true },
+          { label: 'G', available: true },
+          { label: 'GG', available: true },
+        ],
+        emoji: '👕',
+        bgColor: '#f0ece8',
+        whatsappMessage: 'Olá! Tenho interesse na *Camiseta Dry Fit Masculino* (R$89). Poderia me ajudar?',
+      },
+      {
+        id: 4,
+        name: 'Conjunto Run',
+        category: 'conjuntos',
+        categoryLabel: 'Conjunto feminino',
+        price: 259,
+        badge: 'novo',
+        sizes: [
+          { label: 'P', available: true },
+          { label: 'M', available: false },
+          { label: 'G', available: true },
+          { label: 'GG', available: false },
+        ],
+        emoji: '🩳',
+        bgColor: '#eaeaf0',
+        whatsappMessage: 'Olá! Tenho interesse no *Conjunto Run* (R$259). Poderia me ajudar?',
+      },
+      {
+        id: 5,
+        name: 'Shorts Active',
+        category: 'shorts',
+        categoryLabel: 'Shorts masculino',
+        price: 99,
+        badge: 'hot',
+        sizes: [
+          { label: 'P', available: true },
+          { label: 'M', available: true },
+          { label: 'G', available: false },
+          { label: 'GG', available: true },
+        ],
+        emoji: '🩳',
+        bgColor: '#f0eae0',
+        whatsappMessage: 'Olá! Tenho interesse no *Shorts Active* (R$99). Poderia me ajudar?',
+      },
+      {
+        id: 6,
+        name: 'Top Essential',
+        category: 'tops',
+        categoryLabel: 'Top feminino',
+        price: 99,
+        originalPrice: 124,
+        badge: 'sale',
+        sizes: [
+          { label: 'P', available: true },
+          { label: 'M', available: true },
+          { label: 'G', available: true },
+          { label: 'GG', available: true },
+        ],
+        emoji: '🩱',
+        bgColor: '#eaf0f0',
+        whatsappMessage: 'Olá! Tenho interesse no *Top Essential* (R$99). Poderia me ajudar?',
+      },
+    ];
   }
 
-  /** Busca produto por ID string. */
-  getProductById(id: string): Product | undefined {
-    return this.products.find(p => p.id === id);
+  openWhatsApp(message: string): void {
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${this.whatsappNumber}?text=${encoded}`, '_blank');
   }
 
-  /** Adiciona um novo produto (ID deve vir como string). */
+  openWhatsAppGeneral(): void {
+    const message = 'Olá! Visitei o catálogo da Attena e gostaria de fazer um pedido.';
+    this.openWhatsApp(message);
+  }
+
   addProduct(product: Product): void {
-    this.products.push({ ...product });
+    const products = this.getProducts();
+    products.push(product);
   }
 
-  /** Atualiza um produto existente. */
-  updateProduct(updatedProduct: Product): void {
-    const index = this.products.findIndex(p => p.id === updatedProduct.id);
-    if (index !== -1) {
-      this.products[index] = { ...updatedProduct };
-    }
+  updateProduct(product: Product): void {
+    const products = this.getProducts();
+    const index = products.findIndex(p => p.id === product.id);
+    if (index !== -1) products[index] = product;
   }
 
-  /** Remove produto por ID string. */
-  deleteProduct(id: string): void {
-    this.products = this.products.filter(p => p.id !== id);
+  deleteProduct(id: string | number): void {
+    // implementar conforme necessário
   }
+  
 }

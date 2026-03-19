@@ -1,52 +1,116 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterModule } from '@angular/router'; // 1. Importar RouterModule para o botão 'Admin'
-import { CommonModule } from '@angular/common'; // 2. Importar CommonModule para *ngIf, *ngFor
+import { CommonModule } from '@angular/common';
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
+import { ProductCardComponent } from '../product-card/product-card.component';
+
+type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'masculino';
 
 @Component({
   selector: 'app-catalog',
-  // CORREÇÃO CRÍTICA 1: Componente deve ser Standalone
-  standalone: true, 
-  // CORREÇÃO CRÍTICA 2: Importar todas as dependências usadas no template (HTML)
-  imports: [CommonModule, RouterModule],
-  templateUrl: './catalog.component.html',
-  styleUrls: ['./catalog.component.css']
+  standalone: true,
+  imports: [CommonModule, ProductCardComponent],
+  template: `
+    <section class="catalog">
+      <div class="filters">
+        <span class="filter-label">Categoria</span>
+        <button
+          *ngFor="let f of filters"
+          class="pill"
+          [class.active]="activeFilter === f.key"
+          (click)="setFilter(f.key)"
+        >{{ f.label }}</button>
+      </div>
+
+      <div class="grid">
+        <app-product-card
+          *ngFor="let p of filteredProducts"
+          [product]="p"
+        />
+      </div>
+
+      <div *ngIf="filteredProducts.length === 0" class="empty">
+        Nenhum produto nessa categoria no momento.
+      </div>
+    </section>
+  `,
+  styles: [`
+    .catalog { background: #FCFAE5; padding-bottom: 2rem; }
+
+    .filters {
+      padding: 1.5rem 1.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #aaa;
+      margin-right: 4px;
+    }
+
+    .pill {
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #c8c5b8;
+      background: transparent;
+      color: #395531;
+      transition: all 0.15s;
+    }
+    .pill:hover { border-color: #395531; }
+    .pill.active {
+      background: #395531;
+      color: #FCFAE5;
+      border-color: #395531;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      padding: 0.5rem 1.5rem 1rem;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: #aaa;
+      font-size: 14px;
+    }
+  `]
 })
 export class CatalogComponent implements OnInit {
+  allProducts: Product[] = [];
+  filteredProducts: Product[] = [];
+  activeFilter: FilterKey = 'todos';
 
-  products: Product[] = []; 
+  filters: { key: FilterKey; label: string }[] = [
+    { key: 'todos',     label: 'Todos' },
+    { key: 'tops',      label: 'Tops' },
+    { key: 'leggings',  label: 'Leggings' },
+    { key: 'shorts',    label: 'Shorts' },
+    { key: 'conjuntos', label: 'Conjuntos' },
+    { key: 'masculino', label: 'Masculino' },
+  ];
 
-  // O Router é injetado no construtor e não precisa ser importado aqui novamente
-  constructor(
-    private productService: ProductService,
-    private router: Router 
-  ) {}
+  constructor(private productService: ProductService) {}
 
-  ngOnInit(): void {
-    this.loadProducts();
+  ngOnInit() {
+    this.allProducts = this.productService.getProducts();
+    this.filteredProducts = this.allProducts;
   }
 
-  loadProducts(): void {
-    // Assumindo que este método carrega os produtos para a grade
-    this.products = this.productService.getProducts(); 
-  }
-
-  /**
-   * Navega para o painel administrativo.
-   */
-  openAdmin(): void {
-    this.router.navigate(['/admin']); 
-  }
-
-  /**
-   * Redireciona o usuário para o WhatsApp em uma nova aba.
-   */
-  redirectToWhatsApp(): void {
-    // *** AJUSTAR AQUI: Substitua pelo seu número de telefone com código do país/área ***
-    const phoneNumber = 'SEU_NUMERO_DE_TELEFONE'; 
-    const message = encodeURIComponent('Olá, gostaria de saber mais sobre a Coleção ATTENA 2024!');
-    
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+  setFilter(key: FilterKey) {
+    this.activeFilter = key;
+    this.filteredProducts = key === 'todos'
+      ? this.allProducts
+      : this.allProducts.filter(p => p.category === key);
   }
 }

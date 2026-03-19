@@ -37,12 +37,12 @@
             <h3>{{ product.name }}</h3>
             <p>{{ product.description }}</p>
             <p class="product-price">R$ {{ product.price.toFixed(2) }}</p>
-            <p *ngIf="product.colors.length"><strong>Cores:</strong> {{ product.colors.join(', ') }}</p>
-            <p *ngIf="product.sizes.length"><strong>Tamanhos:</strong> {{ product.sizes.join(', ') }}</p>
+            <p *ngIf="product.colors?.length"><strong>Cores:</strong> {{ product.colors?.join(', ') }}</p> <!-- ✅ corrigido: adicionado ?. -->
+            <p *ngIf="product.sizes?.length"><strong>Tamanhos:</strong> {{ product.sizes?.join(', ') }}</p> <!-- ✅ corrigido: adicionado ?. -->
 
             <div class="product-actions">
               <button (click)="openEditForm(product)">Editar</button>
-              <button (click)="deleteProduct(product.id)">Excluir</button>
+              <button (click)="deleteProduct(product.id.toString())">Excluir</button> <!-- ✅ corrigido: toString() -->
             </div>
           </div>
         </div>
