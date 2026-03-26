@@ -1,0 +1,108 @@
+<div class="page-wrapper">
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="logo">mercado<span>.</span></div>
+    <div class="cart-badge">
+      🛒 Carrinho
+      <span class="count">{{ totalQty }}</span>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- PRODUTOS -->
+    <div class="products-section">
+      <h1 class="section-title">
+        Produtos <em>{{ PRODUCTS.length }} itens</em>
+      </h1>
+
+      <div class="product-grid">
+        <div
+          *ngFor="let p of PRODUCTS; trackBy: trackByProductId"
+          class="product-card"
+          [class.in-cart]="isInCart(p.id)"
+        >
+          <span class="in-cart-badge">no carrinho</span>
+          <div class="product-img">{{ p.emoji }}</div>
+          <div class="product-info">
+            <div class="product-tag">{{ p.category }}</div>
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-price">{{ fmt(p.price) }}</div>
+            <button
+              class="add-btn"
+              [class.added]="isInCart(p.id)"
+              (click)="addToCart(p)"
+            >
+              {{ isInCart(p.id) ? '✓ Adicionado' : '+ Adicionar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARRINHO -->
+    <div class="cart-panel">
+      <div class="cart-header">
+        <h2>🛒 Meu Carrinho</h2>
+        <button class="clear-btn" (click)="clearCart()">Limpar tudo</button>
+      </div>
+
+      <!-- Vazio -->
+      <div class="cart-empty" *ngIf="cartItems.length === 0">
+        <div class="icon">🛍️</div>
+        <p>Seu carrinho está vazio.<br>Adicione produtos ao lado!</p>
+      </div>
+
+      <!-- Itens -->
+      <div class="cart-items" *ngIf="cartItems.length > 0">
+        <div
+          class="cart-item"
+          *ngFor="let item of cartItems; trackBy: trackById"
+        >
+          <span class="cart-item-emoji">{{ item.emoji }}</span>
+          <div class="cart-item-info">
+            <div class="cart-item-name">{{ item.name }}</div>
+            <div class="cart-item-price">
+              {{ fmt(item.price) }} × {{ item.qty }} = {{ fmt(item.price * item.qty) }}
+            </div>
+          </div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" (click)="changeQty(item.id, -1)">−</button>
+            <span class="qty-num">{{ item.qty }}</span>
+            <button class="qty-btn" (click)="changeQty(item.id, 1)">+</button>
+          </div>
+          <button class="remove-btn" (click)="removeItem(item.id)" title="Remover">✕</button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="cart-footer">
+        <div class="subtotal-row">
+          <span>Subtotal</span>
+          <span>{{ fmt(totalValue) }}</span>
+        </div>
+        <div class="subtotal-row">
+          <span>Entrega</span>
+          <span>A combinar</span>
+        </div>
+        <div class="total-row">
+          <span>Total</span>
+          <span>{{ fmt(totalValue) }}</span>
+        </div>
+        <button
+          class="whatsapp-btn"
+          [disabled]="cartItems.length === 0"
+          (click)="sendWhatsApp()"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.546 21.5l4.462-.918A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.068-1.115l-.291-.173-3.018.621.643-2.943-.19-.302A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
+          </svg>
+          Finalizar via WhatsApp
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
