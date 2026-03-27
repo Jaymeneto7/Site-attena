@@ -1,9 +1,8 @@
 <div class="page-wrapper">
 
-  <!-- NAV -->
   <nav class="navbar">
     <div class="logo">mercado<span>.</span></div>
-    <div class="cart-badge">
+    <div class="cart-badge" (click)="cartService.toggleCart()" style="cursor: pointer;">
       🛒 Carrinho
       <span class="count">{{ totalQty }}</span>
     </div>
@@ -11,7 +10,6 @@
 
   <div class="wrapper">
 
-    <!-- PRODUTOS -->
     <div class="products-section">
       <h1 class="section-title">
         Produtos <em>{{ PRODUCTS.length }} itens</em>
@@ -41,20 +39,20 @@
       </div>
     </div>
 
-    <!-- CARRINHO -->
-    <div class="cart-panel">
+    <div class="cart-panel" [class.active]="(cartService.isCartOpen$ | async)">
       <div class="cart-header">
         <h2>🛒 Meu Carrinho</h2>
-        <button class="clear-btn" (click)="clearCart()">Limpar tudo</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="clear-btn" (click)="clearCart()">Limpar tudo</button>
+          <button class="remove-btn" (click)="cartService.toggleCart()">✕</button>
+        </div>
       </div>
 
-      <!-- Vazio -->
       <div class="cart-empty" *ngIf="cartItems.length === 0">
         <div class="icon">🛍️</div>
         <p>Seu carrinho está vazio.<br>Adicione produtos ao lado!</p>
       </div>
 
-      <!-- Itens -->
       <div class="cart-items" *ngIf="cartItems.length > 0">
         <div
           class="cart-item"
@@ -76,7 +74,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="cart-footer">
         <div class="subtotal-row">
           <span>Subtotal</span>
