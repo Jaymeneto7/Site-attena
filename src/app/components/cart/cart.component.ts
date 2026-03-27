@@ -1,18 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CartService } from '../../services/cart.service';
+import { CartService, CartItem } from '../../services/cart.service';
 
-// Definição das interfaces fora da classe para melhor organização
 interface Product {
   id: number;
   emoji: string;
   name: string;
   category: string;
   price: number;
-}
-
-interface CartItem extends Product {
-  qty: number;
 }
 
 @Component({
@@ -23,9 +18,9 @@ interface CartItem extends Product {
   styleUrls: ['./cart.component.css']
 })
 export class CartComponent {
+  showCart = false; // ← linha adicionada
 
-  // ===================== CONFIG =====================
-  readonly WHATSAPP_NUMBER = '5511999999999'; // ← troque pelo seu número real
+  readonly WHATSAPP_NUMBER = '5511999999999';
 
   readonly PRODUCTS: Product[] = [
     { id: 1,  emoji: '👟', name: 'Tênis Urban Runner',         category: 'Calçados',    price: 299.90 },
@@ -42,88 +37,45 @@ export class CartComponent {
     { id: 12, emoji: '☕', name: 'Garrafa Térmica 1L',          category: 'Acessórios',  price: 99.90  },
   ];
 
-  cart: { [id: number]: CartItem } = {};
-
-  // Injetando o CartService para abrir/fechar o carrinho
   constructor(public cartService: CartService) {}
 
-  // ===================== GETTERS =====================
-  get cartItems(): CartItem[] {
-    return Object.values(this.cart);
-  }
-
-  get totalQty(): number {
-    return this.cartItems.reduce((s, i) => s + i.qty, 0);
-  }
-
-  get totalValue(): number {
-    return this.cartItems.reduce((s, i) => s + i.qty * i.price, 0);
-  }
+  get cartItems(): CartItem[] { return this.cartService.cartItems; }
+  get totalQty(): number { return this.cartService.totalQty; }
+  get totalValue(): number { return this.cartService.totalValue; }
 
   isInCart(id: number): boolean {
-    return !!this.cart[id];
+    return this.cartItems.some(i => i.id === id);
   }
 
-  // ===================== CART LOGIC =====================
   addToCart(product: Product): void {
-    if (this.cart[product.id]) {
-      this.cart[product.id].qty++;
-    } else {
-      this.cart[product.id] = { ...product, qty: 1 };
-    }
-    this.cart = { ...this.cart }; 
+    this.cartService.addItem(product);
   }
 
   changeQty(id: number, delta: number): void {
-    if (!this.cart[id]) return;
-    this.cart[id].qty += delta;
-    if (this.cart[id].qty <= 0) this.removeItem(id);
-    else this.cart = { ...this.cart };
+    this.cartService.updateQty(id, delta);
   }
 
   removeItem(id: number): void {
-    const updated = { ...this.cart };
-    delete updated[id];
-    this.cart = updated;
+    this.cartService.removeItem(id);
   }
 
   clearCart(): void {
-    this.cart = {};
+    this.cartService.clear();
   }
 
-  // ===================== WHATSAPP =====================
   sendWhatsApp(): void {
     if (!this.cartItems.length) return;
-
-    const lines = this.cartItems.map(i =>
-      `▸ ${i.emoji} ${i.name} (x${i.qty}) — ${this.fmt(i.qty * i.price)}`
-    ).join('\n');
-
-    const msg =
-`🛍️ *Olá! Gostaria de fazer um pedido:*
-
-${lines}
-
-━━━━━━━━━━━━━━
-💰 *Total: ${this.fmt(this.totalValue)}*
-━━━━━━━━━━━━━━
-
-Por favor, me informe as formas de pagamento e prazo de entrega. Obrigado! 😊`;
-
-    const url = `https://wa.me/${this.WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    const lines = this.cartItems
+      .map(i => `▸ ${i.emoji} ${i.name} (x${i.qty}) — ${this.fmt(i.qty * i.price)}`)
+      .join('\n');
+    const msg = `🛍️ *Novo Pedido:*\n\n${lines}\n\n💰 *Total: ${this.fmt(this.totalValue)}*`;
+    window.open(`https://wa.me/${this.WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
-  // ===================== HELPERS =====================
   fmt(val: number): string {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  trackById(_: number, item: CartItem): number {
-    return item.id;
-  }
-
-  trackByProductId(_: number, product: Product): number {
-    return product.id;
-  }
+  trackById(_: number, item: CartItem): number { return item.id; }
+  trackByProductId(_: number, product: Product): number { return product.id; }
 }

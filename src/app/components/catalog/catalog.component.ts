@@ -3,14 +3,20 @@ import { CommonModule } from '@angular/common';
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { ProductCardComponent } from '../product-card/product-card.component';
+import { NavbarComponent } from '../navbar/navbar.component';
+import { HeroComponent } from '../hero/hero.component';
+import { FooterComponent } from '../footer/footer.component';
 
 type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'masculino';
 
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, ProductCardComponent],
+  imports: [CommonModule, ProductCardComponent, NavbarComponent, HeroComponent, FooterComponent],
   template: `
+    <app-navbar />
+    <app-hero />
+
     <section class="catalog">
       <div class="filters">
         <span class="filter-label">Categoria</span>
@@ -33,6 +39,8 @@ type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'mascu
         Nenhum produto nessa categoria no momento.
       </div>
     </section>
+
+    <app-footer />
   `,
   styles: [`
     .catalog { background: #FCFAE5; padding-bottom: 2rem; }
@@ -97,7 +105,7 @@ export class CatalogComponent implements OnInit {
     { key: 'leggings',  label: 'Leggings' },
     { key: 'shorts',    label: 'Shorts' },
     { key: 'conjuntos', label: 'Conjuntos' },
-    { key: 'masculino', label: 'Masculino' },
+    //{ key: 'masculino', label: 'Masculino' },
   ];
 
   constructor(private productService: ProductService) {}
