@@ -43,7 +43,7 @@ type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'mascu
     <app-footer />
   `,
   styles: [`
-    .catalog { background: #FCFAE5; padding-bottom: 2rem; }
+    .catalog { background: var(--color-bg); padding-bottom: 2rem; }
 
     .filters {
       padding: 1.5rem 1.5rem 1rem;
@@ -67,16 +67,16 @@ type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'mascu
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      border: 1px solid #c8c5b8;
+      border: 1px solid var(--color-border-soft);
       background: transparent;
-      color: #395531;
+      color: var(--color-text);
       transition: all 0.15s;
     }
-    .pill:hover { border-color: #395531; }
+    .pill:hover { border-color: var(--color-primary); }
     .pill.active {
-      background: #395531;
-      color: #FCFAE5;
-      border-color: #395531;
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-color: var(--color-primary);
     }
 
     .grid {

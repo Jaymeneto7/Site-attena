@@ -1,43 +1,81 @@
-// File: src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
+
+export interface User {
+  name: string;
+  email: string;
+  role: 'admin' | 'cliente';
+  avatar?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  /**
-   * Estado interno de autenticação.
-   * Mantido privado e exposto apenas via getter.
-   */
-  private _isAuthenticated = false;
+  private _user: User | null = null;
 
   constructor() {
-    // Mantém o usuário logado caso exista token gravado
-    this._isAuthenticated = this.hasToken();
+    const saved = localStorage.getItem('attena_user');
+    if (saved) this._user = JSON.parse(saved);
   }
 
-  /** Getter público para verificar login — recomendado Angular style */
-  get isLogged(): boolean {
-    return this._isAuthenticated;
+  get isLogged(): boolean { return !!this._user; }
+  get currentUser(): User | null { return this._user; }
+  get isAdmin(): boolean { return this._user?.role === 'admin'; }
+
+  public isAuthenticated(): boolean { return !!this._user; }
+
+  public loginAdmin(email: string, password: string): boolean {
+    if (email === 'admin@attena.com' && password === 'attena2024') {
+      this._setUser({ name: 'Administrador', email, role: 'admin' });
+      return true;
+    }
+    return false;
   }
 
-  /** Método padrão usado por componentes */
-  public isAuthenticated(): boolean {
-    return this._isAuthenticated;
+  public loginCliente(email: string, password: string): boolean {
+    const users = this._getRegisteredUsers();
+    const user = users.find(u => u.email === email && u.password === password);
+    if (user) {
+      this._setUser({ name: user.name, email: user.email, role: 'cliente' });
+      return true;
+    }
+    return false;
   }
 
-  /** Login simples (mock) — opcionalmente recebe token */
-  public login(token: string = 'dummy_token'): void {
-    localStorage.setItem('auth_token', token);
-    this._isAuthenticated = true;
+  public registerCliente(name: string, email: string, password: string): boolean {
+    const users = this._getRegisteredUsers();
+    if (users.find(u => u.email === email)) return false; // já existe
+    users.push({ name, email, password });
+    localStorage.setItem('attena_users', JSON.stringify(users));
+    this._setUser({ name, email, role: 'cliente' });
+    return true;
   }
 
-  /** Logout global */
+  public loginGoogle(): void {
+    // Simulado — futuramente integrar Firebase Google Auth
+    this._setUser({
+      name: 'Usuário Google',
+      email: 'google@gmail.com',
+      role: 'cliente',
+      avatar: 'G'
+    });
+  }
+
   public logout(): void {
-    localStorage.removeItem('auth_token');
-    this._isAuthenticated = false;
+    localStorage.removeItem('attena_user');
+    this._user = null;
   }
 
-  /** Verifica se existe token salvo */
-  private hasToken(): boolean {
-    return !!localStorage.getItem('auth_token');
+  // Compatibilidade com código antigo
+  public login(token: string = 'dummy_token'): void {
+    this._setUser({ name: 'Administrador', email: 'admin@attena.com', role: 'admin' });
+  }
+
+  private _setUser(user: User): void {
+    this._user = user;
+    localStorage.setItem('attena_user', JSON.stringify(user));
+  }
+
+  private _getRegisteredUsers(): { name: string; email: string; password: string }[] {
+    const raw = localStorage.getItem('attena_users');
+    return raw ? JSON.parse(raw) : [];
   }
 }

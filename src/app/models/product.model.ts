@@ -1,3 +1,9 @@
+/** Tamanho com quantidade em estoque (0 = indisponível no catálogo) */
+export interface ProductSize {
+  label: string;
+  stock: number;
+}
+
 export interface Product {
   id: number | string;
   name: string;
@@ -6,11 +12,12 @@ export interface Product {
   price: number;
   originalPrice?: number;
   badge?: 'novo' | 'hot' | 'sale';
-  sizes: { label: string; available: boolean }[] | string[];
+  sizes: ProductSize[];
   emoji?: string;
   bgColor?: string;
   whatsappMessage?: string;
   description?: string;
   colors?: string[];
+  /** URL, caminho em /assets ou data:image (upload admin) */
   image?: string;
 }

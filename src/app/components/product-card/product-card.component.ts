@@ -9,11 +9,12 @@ import { CartService } from '../../services/cart.service';
   imports: [CommonModule],
   template: `
     <div class="card">
-      <div class="card-img" [style.background]="product.bgColor">
+      <div class="card-img" [style.background]="product.bgColor || '#f4f4f0'">
         <span *ngIf="product.badge" class="badge" [ngClass]="'badge-' + product.badge">
           {{ badgeLabel }}
         </span>
-        <span class="emoji">{{ product.emoji }}</span>
+        <img *ngIf="product.image" class="card-photo" [src]="product.image" [alt]="product.name" />
+        <span *ngIf="!product.image" class="emoji">{{ product.emoji }}</span>
       </div>
       <div class="card-body">
         <div class="card-name">{{ product.name }}</div>
@@ -41,8 +42,9 @@ import { CartService } from '../../services/cart.service';
   styles: [`
     .card { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s, transform 0.15s; }
     .card:hover { border-color: var(--color-muted); transform: translateY(-2px); }
-    .card-img { height: 160px; display: flex; align-items: center; justify-content: center; position: relative; }
-    .emoji { font-size: 56px; }
+    .card-img { height: 160px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .card-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .emoji { font-size: 56px; position: relative; z-index: 1; }
     .badge { position: absolute; top: 10px; left: 10px; font-size: 9px; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; }
     .badge-novo { background: var(--color-muted); color: var(--color-on-primary); }
     .badge-hot  { background: var(--color-accent-warm); color: var(--color-on-primary); }
@@ -68,13 +70,14 @@ export class ProductCardComponent {
   constructor(private cartService: CartService) {}
 
   get hasSizeObjects(): boolean {
-    return Array.isArray(this.product.sizes) &&
-      this.product.sizes.length > 0 &&
-      typeof this.product.sizes[0] === 'object';
+    return Array.isArray(this.product.sizes) && this.product.sizes.length > 0;
   }
 
   get sizeObjects(): { label: string; available: boolean }[] {
-    return this.product.sizes as { label: string; available: boolean }[];
+    return this.product.sizes.map(s => ({
+      label: s.label,
+      available: s.stock > 0,
+    }));
   }
 
   get badgeLabel(): string {

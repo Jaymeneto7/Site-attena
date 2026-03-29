@@ -1,117 +1,232 @@
 import { Injectable } from '@angular/core';
-import { Product } from '../models/product.model';
+import { Product, ProductSize } from '../models/product.model';
+
+const STORAGE_KEY = 'athena_products_v1';
+
+const SEED_PRODUCTS: Product[] = [
+  {
+    id: 1,
+    name: 'Top Sculpt',
+    category: 'tops',
+    categoryLabel: 'Top feminino',
+    price: 129,
+    badge: 'novo',
+    sizes: [
+      { label: 'P', stock: 4 },
+      { label: 'M', stock: 8 },
+      { label: 'G', stock: 0 },
+      { label: 'GG', stock: 3 },
+    ],
+    emoji: '🩱',
+    bgColor: '#f0ede0',
+    whatsappMessage: 'Olá! Tenho interesse no *Top Sculpt* (R$129). Poderia me ajudar?',
+  },
+  {
+    id: 2,
+    name: 'Legging Power',
+    category: 'leggings',
+    categoryLabel: 'Legging feminina',
+    price: 189,
+    badge: 'hot',
+    sizes: [
+      { label: 'P', stock: 2 },
+      { label: 'M', stock: 5 },
+      { label: 'G', stock: 6 },
+      { label: 'GG', stock: 0 },
+    ],
+    emoji: '🩲',
+    bgColor: '#eaf0ea',
+    whatsappMessage: 'Olá! Tenho interesse na *Legging Power* (R$189). Poderia me ajudar?',
+  },
+  {
+    id: 3,
+    name: 'Dry Fit Masculino',
+    category: 'masculino',
+    categoryLabel: 'Camiseta masculina',
+    price: 89,
+    originalPrice: 129,
+    badge: 'sale',
+    sizes: [
+      { label: 'P', stock: 0 },
+      { label: 'M', stock: 4 },
+      { label: 'G', stock: 7 },
+      { label: 'GG', stock: 5 },
+    ],
+    emoji: '👕',
+    bgColor: '#f0ece8',
+    whatsappMessage: 'Olá! Tenho interesse na *Camiseta Dry Fit Masculino* (R$89). Poderia me ajudar?',
+  },
+  {
+    id: 4,
+    name: 'Conjunto Run',
+    category: 'conjuntos',
+    categoryLabel: 'Conjunto feminino',
+    price: 259,
+    badge: 'novo',
+    sizes: [
+      { label: 'P', stock: 3 },
+      { label: 'M', stock: 0 },
+      { label: 'G', stock: 2 },
+      { label: 'GG', stock: 0 },
+    ],
+    emoji: '🩳',
+    bgColor: '#eaeaf0',
+    whatsappMessage: 'Olá! Tenho interesse no *Conjunto Run* (R$259). Poderia me ajudar?',
+  },
+  {
+    id: 5,
+    name: 'Shorts Active',
+    category: 'shorts',
+    categoryLabel: 'Shorts masculino',
+    price: 99,
+    badge: 'hot',
+    sizes: [
+      { label: 'P', stock: 3 },
+      { label: 'M', stock: 4 },
+      { label: 'G', stock: 0 },
+      { label: 'GG', stock: 2 },
+    ],
+    emoji: '🩳',
+    bgColor: '#f0eae0',
+    whatsappMessage: 'Olá! Tenho interesse no *Shorts Active* (R$99). Poderia me ajudar?',
+  },
+  {
+    id: 6,
+    name: 'Top Essential',
+    category: 'tops',
+    categoryLabel: 'Top feminino',
+    price: 99,
+    originalPrice: 124,
+    badge: 'sale',
+    sizes: [
+      { label: 'P', stock: 6 },
+      { label: 'M', stock: 6 },
+      { label: 'G', stock: 5 },
+      { label: 'GG', stock: 4 },
+    ],
+    emoji: '🩱',
+    bgColor: '#eaf0f0',
+    whatsappMessage: 'Olá! Tenho interesse no *Top Essential* (R$99). Poderia me ajudar?',
+  },
+];
+
+function normalizeSize(raw: unknown): ProductSize {
+  if (typeof raw === 'string') {
+    return { label: raw.trim(), stock: 10 };
+  }
+  const o = raw as { label?: string; stock?: number; available?: boolean };
+  const label = String(o?.label ?? '').trim() || '?';
+  let stock = typeof o?.stock === 'number' ? o.stock : NaN;
+  if (Number.isNaN(stock)) {
+    stock = o?.available === false ? 0 : 5;
+  }
+  return { label, stock: Math.max(0, Math.floor(stock)) };
+}
+
+function normalizeProduct(p: Product): Product {
+  const sizes = (p.sizes ?? []).map(s => normalizeSize(s as unknown));
+  return {
+    ...p,
+    sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }],
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private whatsappNumber = '5500000000000'; // Substituir pelo número real
+  private whatsappNumber = '5500000000000';
+  private products: Product[] = [];
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage(): void {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Product[];
+        this.products = parsed.map(normalizeProduct);
+        this.save();
+        return;
+      } catch {
+        /* fallback seed */
+      }
+    }
+    this.products = SEED_PRODUCTS.map(p => normalizeProduct({ ...p }));
+    this.save();
+  }
+
+  private save(): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.products));
+  }
+
+  private nextId(): number {
+    const nums = this.products.map(p => {
+      const n = Number(p.id);
+      return Number.isFinite(n) ? n : 0;
+    });
+    return (nums.length ? Math.max(...nums) : 0) + 1;
+  }
 
   getProducts(): Product[] {
-    return [
-      {
-        id: 1,
-        name: 'Top Sculpt',
-        category: 'tops',
-        categoryLabel: 'Top feminino',
-        price: 129,
-        badge: 'novo',
-        sizes: [
-          { label: 'P', available: true },
-          { label: 'M', available: true },
-          { label: 'G', available: false },
-          { label: 'GG', available: true },
-        ],
-        emoji: '🩱',
-        bgColor: '#f0ede0',
-        whatsappMessage: 'Olá! Tenho interesse no *Top Sculpt* (R$129). Poderia me ajudar?',
-      },
-      {
-        id: 2,
-        name: 'Legging Power',
-        category: 'leggings',
-        categoryLabel: 'Legging feminina',
-        price: 189,
-        badge: 'hot',
-        sizes: [
-          { label: 'P', available: true },
-          { label: 'M', available: true },
-          { label: 'G', available: true },
-          { label: 'GG', available: false },
-        ],
-        emoji: '🩲',
-        bgColor: '#eaf0ea',
-        whatsappMessage: 'Olá! Tenho interesse na *Legging Power* (R$189). Poderia me ajudar?',
-      },
-      {
-        id: 3,
-        name: 'Dry Fit Masculino',
-        category: 'masculino',
-        categoryLabel: 'Camiseta masculina',
-        price: 89,
-        originalPrice: 129,
-        badge: 'sale',
-        sizes: [
-          { label: 'P', available: false },
-          { label: 'M', available: true },
-          { label: 'G', available: true },
-          { label: 'GG', available: true },
-        ],
-        emoji: '👕',
-        bgColor: '#f0ece8',
-        whatsappMessage: 'Olá! Tenho interesse na *Camiseta Dry Fit Masculino* (R$89). Poderia me ajudar?',
-      },
-      {
-        id: 4,
-        name: 'Conjunto Run',
-        category: 'conjuntos',
-        categoryLabel: 'Conjunto feminino',
-        price: 259,
-        badge: 'novo',
-        sizes: [
-          { label: 'P', available: true },
-          { label: 'M', available: false },
-          { label: 'G', available: true },
-          { label: 'GG', available: false },
-        ],
-        emoji: '🩳',
-        bgColor: '#eaeaf0',
-        whatsappMessage: 'Olá! Tenho interesse no *Conjunto Run* (R$259). Poderia me ajudar?',
-      },
-      {
-        id: 5,
-        name: 'Shorts Active',
-        category: 'shorts',
-        categoryLabel: 'Shorts masculino',
-        price: 99,
-        badge: 'hot',
-        sizes: [
-          { label: 'P', available: true },
-          { label: 'M', available: true },
-          { label: 'G', available: false },
-          { label: 'GG', available: true },
-        ],
-        emoji: '🩳',
-        bgColor: '#f0eae0',
-        whatsappMessage: 'Olá! Tenho interesse no *Shorts Active* (R$99). Poderia me ajudar?',
-      },
-      {
-        id: 6,
-        name: 'Top Essential',
-        category: 'tops',
-        categoryLabel: 'Top feminino',
-        price: 99,
-        originalPrice: 124,
-        badge: 'sale',
-        sizes: [
-          { label: 'P', available: true },
-          { label: 'M', available: true },
-          { label: 'G', available: true },
-          { label: 'GG', available: true },
-        ],
-        emoji: '🩱',
-        bgColor: '#eaf0f0',
-        whatsappMessage: 'Olá! Tenho interesse no *Top Essential* (R$99). Poderia me ajudar?',
-      },
-    ];
+    return this.products.map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
+  }
+
+  getProductById(id: string | number): Product | undefined {
+    return this.products.find(p => String(p.id) === String(id));
+  }
+
+  /** Novo produto (gera id automaticamente) */
+  createProduct(data: Omit<Product, 'id'>): Product {
+    const id = this.nextId();
+    const normalized = normalizeProduct({
+      ...data,
+      id,
+      whatsappMessage: data.whatsappMessage ?? this.defaultWhatsappMessage({ ...data, id } as Product),
+    });
+    this.products.push(normalized);
+    this.save();
+    return normalized;
+  }
+
+  addProduct(product: Product): void {
+    const id = product.id ?? this.nextId();
+    const normalized = normalizeProduct({ ...product, id });
+    if (!normalized.whatsappMessage) {
+      normalized.whatsappMessage = this.defaultWhatsappMessage(normalized);
+    }
+    this.products.push(normalized);
+    this.save();
+  }
+
+  updateProduct(product: Product): void {
+    const i = this.products.findIndex(p => String(p.id) === String(product.id));
+    if (i === -1) return;
+    const normalized = normalizeProduct({ ...product });
+    if (!normalized.whatsappMessage) {
+      normalized.whatsappMessage = this.defaultWhatsappMessage(normalized);
+    }
+    this.products[i] = normalized;
+    this.save();
+  }
+
+  deleteProduct(id: string | number): void {
+    this.products = this.products.filter(p => String(p.id) !== String(id));
+    this.save();
+  }
+
+  /** Reseta para o catálogo inicial (útil em dev) */
+  resetToSeed(): void {
+    this.products = SEED_PRODUCTS.map(p => normalizeProduct({ ...p }));
+    this.save();
+  }
+
+  totalStock(p: Product): number {
+    return p.sizes.reduce((acc, s) => acc + s.stock, 0);
+  }
+
+  private defaultWhatsappMessage(p: Product): string {
+    return `Olá! Tenho interesse no *${p.name}* (R$${p.price}). Poderia me ajudar?`;
   }
 
   openWhatsApp(message: string): void {
@@ -123,20 +238,4 @@ export class ProductService {
     const message = 'Olá! Visitei o catálogo da Attena e gostaria de fazer um pedido.';
     this.openWhatsApp(message);
   }
-
-  addProduct(product: Product): void {
-    const products = this.getProducts();
-    products.push(product);
-  }
-
-  updateProduct(product: Product): void {
-    const products = this.getProducts();
-    const index = products.findIndex(p => p.id === product.id);
-    if (index !== -1) products[index] = product;
-  }
-
-  deleteProduct(id: string | number): void {
-    // implementar conforme necessário
-  }
-  
 }
