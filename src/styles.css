@@ -1,20 +1,57 @@
-/* Attena — Global Styles */
+/* Attena — Global Styles (valores padrão; applyRandomTheme() sobrescreve em cada carga) */
+:root {
+  --color-bg: #FCFAE5;
+  --color-text: #395531;
+  --color-primary: #395531;
+  --color-on-primary: #FCFAE5;
+  --color-accent: #CA5417;
+  --color-accent-warm: #CA5417;
+  --color-danger: #8C1D12;
+  --color-muted: #62984B;
+  --color-nav: #07567B;
+  --color-whatsapp: #25D366;
+  /* Marca WhatsApp — não é sobrescrito pelo tema (só existe aqui, sem setProperty no JS) */
+  --whatsapp-brand: #25D366;
+  --color-surface: #ffffff;
+  --color-border: #d8d5c8;
+  --color-border-soft: #c8c5b8;
+  --color-hero-bg: #8C1D12;
+  --color-on-primary-85: rgb(252 250 229 / 0.85);
+  --color-on-primary-65: rgb(252 250 229 / 0.65);
+  --color-on-primary-55: rgb(252 250 229 / 0.55);
+  --color-on-primary-50: rgb(252 250 229 / 0.5);
+  --color-on-primary-40: rgb(252 250 229 / 0.4);
+  --color-on-primary-30: rgb(252 250 229 / 0.3);
+  --color-on-primary-28: rgb(252 250 229 / 0.28);
+  --color-on-primary-18: rgb(252 250 229 / 0.18);
+  --color-on-primary-15: rgb(252 250 229 / 0.15);
+  --color-on-primary-12: rgb(252 250 229 / 0.12);
+  --color-on-primary-10: rgb(252 250 229 / 0.1);
+  --color-on-primary-07: rgb(252 250 229 / 0.07);
+  --shadow-primary: 0 4px 14px rgb(57 85 49 / 0.35);
+  --shadow-primary-lg: 0 6px 20px rgb(57 85 49 / 0.45);
+  --shadow-whatsapp: 0 4px 16px rgb(37 211 102 / 0.35);
+  --shadow-whatsapp-lg: 0 6px 20px rgb(37 211 102 / 0.45);
+  --shadow-whatsapp-brand: 0 4px 16px rgb(37 211 102 / 0.35);
+  --shadow-whatsapp-brand-lg: 0 6px 20px rgb(37 211 102 / 0.45);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #FCFAE5;
-  color: #395531;
+  background: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar sutil */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #FCFAE5; }
-::-webkit-scrollbar-thumb { background: #c8c5b8; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #62984B; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border-soft); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
 
 /* Animação de entrada dos cards */
 @keyframes fadeUp {
