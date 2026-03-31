@@ -20,6 +20,7 @@ export class AdminPanelComponent implements OnInit {
 
   showLoginModal = false;
   showProductForm = false;
+  activeCategory = 'todos';
   products: Product[] = [];
   editingProduct: Product | null = null;
 
@@ -45,7 +46,6 @@ export class AdminPanelComponent implements OnInit {
     badge: '' as '' | 'novo' | 'hot' | 'sale',
   };
 
-  /** Linhas do formulário: tamanho + estoque */
   formSizes: { label: string; stock: number }[] = [
     { label: 'P', stock: 0 },
     { label: 'M', stock: 0 },
@@ -60,14 +60,32 @@ export class AdminPanelComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.showLoginModal = !this.authService.isLogged;
-    if (this.authService.isAdmin) {
+    if (!this.authService.isLogged || !this.authService.isAdmin) {
+      if (this.authService.isLogged && !this.authService.isAdmin) {
+        this.authService.logout();
+      }
+      this.showLoginModal = true;
+    } else {
       this.loadProducts();
     }
   }
 
   get canUsePanel(): boolean {
     return this.authService.isLogged && this.authService.isAdmin;
+  }
+
+  get filteredProducts(): Product[] {
+    if (this.activeCategory === 'todos') return this.products;
+    return this.products.filter(p => p.category === this.activeCategory);
+  }
+
+  get activeCategoryLabel(): string {
+    if (this.activeCategory === 'todos') return 'Todos os produtos';
+    return this.categories.find(c => c.key === this.activeCategory)?.label ?? this.activeCategory;
+  }
+
+  productsByCategory(key: CategoryKey): Product[] {
+    return this.products.filter(p => p.category === key);
   }
 
   loadProducts(): void {
@@ -82,6 +100,9 @@ export class AdminPanelComponent implements OnInit {
     this.showLoginModal = false;
     if (this.authService.isAdmin) {
       this.loadProducts();
+    } else {
+      this.authService.logout();
+      this.showLoginModal = true;
     }
   }
 
@@ -167,15 +188,11 @@ export class AdminPanelComponent implements OnInit {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      this.formData.image = reader.result as string;
-    };
+    reader.onload = () => { this.formData.image = reader.result as string; };
     reader.readAsDataURL(file);
   }
 
-  clearImage(): void {
-    this.formData.image = '';
-  }
+  clearImage(): void { this.formData.image = ''; }
 
   closeForm(): void {
     this.showProductForm = false;
@@ -183,30 +200,19 @@ export class AdminPanelComponent implements OnInit {
   }
 
   submitForm(): void {
-    const colors = this.formData.colorsInput
-      .split(',')
-      .map(c => c.trim())
-      .filter(Boolean);
-
+    const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
     const sizes: ProductSize[] = this.formSizes
-      .map(row => ({
-        label: row.label.trim(),
-        stock: Math.max(0, Math.floor(Number(row.stock) || 0)),
-      }))
+      .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
       .filter(row => row.label.length > 0);
 
-    if (!sizes.length) {
-      alert('Informe ao menos um tamanho com nome.');
-      return;
-    }
+    if (!sizes.length) { alert('Informe ao menos um tamanho com nome.'); return; }
 
     const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
       name: this.formData.name.trim(),
       description: this.formData.description.trim() || undefined,
       price: Number(this.formData.price),
       originalPrice: this.formData.originalPrice != null && this.formData.originalPrice > 0
-        ? Number(this.formData.originalPrice)
-        : undefined,
+        ? Number(this.formData.originalPrice) : undefined,
       category: this.formData.category,
       categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
       badge: this.formData.badge || undefined,
@@ -218,18 +224,10 @@ export class AdminPanelComponent implements OnInit {
       whatsappMessage: undefined,
     };
 
-    if (!payload.name || payload.price < 0) {
-      alert('Preencha nome e preço válidos.');
-      return;
-    }
+    if (!payload.name || payload.price < 0) { alert('Preencha nome e preço válidos.'); return; }
 
     if (this.editingProduct) {
-      const full: Product = {
-        ...(payload as Product),
-        id: this.editingProduct.id,
-        whatsappMessage: this.editingProduct.whatsappMessage ?? undefined,
-      };
-      this.productService.updateProduct(full);
+      this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
     } else {
       this.productService.createProduct(payload as Omit<Product, 'id'>);
     }

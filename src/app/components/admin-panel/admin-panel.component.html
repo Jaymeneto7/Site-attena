@@ -1,5 +1,5 @@
 <app-login-modal
-  *ngIf="showLoginModal && !authService.isLogged"
+  *ngIf="showLoginModal"
   (loginSuccess)="onLoginSuccess()"
   (closeModal)="goToCatalog()"
 />
@@ -16,64 +16,95 @@
 <div class="admin-painel" *ngIf="canUsePanel">
 
   <header class="admin-header">
-    <div class="container">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <div class="logo">A</div>
-          <div>
-            <h1>Painel Administrativo</h1>
-            <p>Produtos, preços, fotos e estoque</p>
-          </div>
+    <div class="header-inner">
+      <div class="brand-area">
+        <div class="logo">A</div>
+        <div>
+          <h1>Painel Administrativo</h1>
+          <p>Produtos, preços, fotos e estoque</p>
         </div>
-
-        <div class="flex gap-3">
-          <button type="button" class="btn-catalog" (click)="goToCatalog()">Ver Catálogo</button>
-          <button type="button" class="btn-logout" (click)="logout()">Sair</button>
-        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-catalog" (click)="goToCatalog()">Ver Catálogo</button>
+        <button type="button" class="btn-logout" (click)="logout()">Sair</button>
       </div>
     </div>
   </header>
 
-  <main class="admin-main">
-    <div class="container">
-      <div class="admin-stats">
-        <div>
-          <h2>Produtos cadastrados</h2>
-          <p>Total: {{ products.length }} produto(s)</p>
-        </div>
+  <div class="admin-layout">
 
-        <button type="button" class="btn-add" (click)="openAddForm()">+ Novo produto</button>
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <button type="button" class="btn-add" (click)="openAddForm()">+ Novo produto</button>
+
+      <div class="sidebar-title">Categorias</div>
+      <nav class="sidebar-nav">
+        <button
+          class="sidebar-item"
+          [class.active]="activeCategory === 'todos'"
+          (click)="activeCategory = 'todos'"
+        >
+          Todos
+          <span class="sidebar-count">{{ products.length }}</span>
+        </button>
+        <button
+          *ngFor="let cat of categories"
+          class="sidebar-item"
+          [class.active]="activeCategory === cat.key"
+          (click)="activeCategory = cat.key"
+        >
+          {{ cat.label }}
+          <span class="sidebar-count">{{ productsByCategory(cat.key).length }}</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>Total: {{ products.length }} produto(s)</p>
+      </div>
+    </aside>
+
+    <!-- Conteúdo -->
+    <main class="admin-content">
+      <div class="content-header">
+        <h2>{{ activeCategoryLabel }}</h2>
+        <span class="content-count">{{ filteredProducts.length }} produto(s)</span>
       </div>
 
       <div class="products-grid">
-        <div class="product-card" *ngFor="let product of products">
+        <div class="product-card" *ngFor="let product of filteredProducts">
           <div class="product-thumb">
             <img *ngIf="product.image" [src]="product.image" [alt]="product.name" />
             <div *ngIf="!product.image" class="thumb-placeholder">{{ product.emoji }}</div>
+            <span *ngIf="product.badge" class="product-badge badge-{{ product.badge }}">{{ product.badge }}</span>
           </div>
           <div class="product-info">
             <h3>{{ product.name }}</h3>
             <p class="meta" *ngIf="product.categoryLabel">{{ product.categoryLabel }}</p>
             <p class="desc" *ngIf="product.description">{{ product.description }}</p>
             <p class="product-price">R$ {{ product.price | number:'1.2-2' }}</p>
-            <p class="stock-line">
-              <strong>Estoque total:</strong> {{ stockTotal(product) }} un.
-            </p>
+            <p class="stock-line"><strong>Estoque:</strong> {{ stockTotal(product) }} un.</p>
             <p *ngIf="product.colors?.length" class="small"><strong>Cores:</strong> {{ product.colors?.join(', ') }}</p>
             <p class="small"><strong>Tamanhos:</strong>
-              <span *ngFor="let s of product.sizes; let last = last">{{ s.label }} ({{ s.stock }})<span *ngIf="!last">, </span></span>
+              <span *ngFor="let s of product.sizes; let last = last">
+                {{ s.label }} ({{ s.stock }})<span *ngIf="!last">, </span>
+              </span>
             </p>
-
             <div class="product-actions">
-              <button type="button" (click)="openEditForm(product)">Editar</button>
+              <button type="button" class="btn-edit" (click)="openEditForm(product)">Editar</button>
               <button type="button" class="btn-del" (click)="deleteProduct(product.id)">Excluir</button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </main>
 
+      <div *ngIf="filteredProducts.length === 0" class="empty-state">
+        <p>Nenhum produto nesta categoria.</p>
+        <button type="button" class="btn-add-inline" (click)="openAddForm()">+ Adicionar produto</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Formulário -->
   <div class="product-form-overlay" *ngIf="showProductForm" (click)="closeForm()">
     <div class="product-form" (click)="$event.stopPropagation()">
       <button class="close-btn" type="button" (click)="closeForm()">×</button>
@@ -94,7 +125,7 @@
         </div>
 
         <div class="form-group">
-          <label for="adm-catlabel">Rótulo no catálogo (editável)</label>
+          <label for="adm-catlabel">Rótulo no catálogo</label>
           <input id="adm-catlabel" type="text" [(ngModel)]="formData.categoryLabel" name="categoryLabel" placeholder="Ex: Legging feminina">
         </div>
 
@@ -109,7 +140,7 @@
             <input id="adm-price" type="number" step="0.01" [(ngModel)]="formData.price" name="price" required min="0">
           </div>
           <div class="form-group">
-            <label for="adm-old">Preço anterior (opcional)</label>
+            <label for="adm-old">Preço anterior</label>
             <input id="adm-old" type="number" step="0.01" [(ngModel)]="formData.originalPrice" name="originalPrice" min="0" placeholder="De/Por">
           </div>
           <div class="form-group">
@@ -127,11 +158,7 @@
           <label>Estoque por tamanho</label>
           <table class="size-table">
             <thead>
-              <tr>
-                <th>Tamanho</th>
-                <th>Quantidade</th>
-                <th></th>
-              </tr>
+              <tr><th>Tamanho</th><th>Quantidade</th><th></th></tr>
             </thead>
             <tbody>
               <tr *ngFor="let row of formSizes; let i = index">
@@ -150,27 +177,27 @@
             <input id="adm-colors" type="text" [(ngModel)]="formData.colorsInput" name="colors" placeholder="Preto, Azul">
           </div>
           <div class="form-group">
-            <label for="adm-emoji">Emoji (se sem foto)</label>
+            <label for="adm-emoji">Emoji</label>
             <input id="adm-emoji" type="text" [(ngModel)]="formData.emoji" name="emoji" maxlength="4">
           </div>
         </div>
 
         <div class="form-row two">
           <div class="form-group">
-            <label for="adm-bg">Cor de fundo (sem foto)</label>
+            <label for="adm-bg">Cor de fundo</label>
             <input id="adm-bg" type="text" [(ngModel)]="formData.bgColor" name="bgColor" placeholder="#f0ede0">
           </div>
         </div>
 
         <div class="form-group">
-          <label for="adm-imgurl">URL da imagem (opcional)</label>
-          <input id="adm-imgurl" type="url" [(ngModel)]="formData.image" name="image" placeholder="https://… ou deixe vazio e envie arquivo abaixo">
+          <label for="adm-imgurl">URL da imagem</label>
+          <input id="adm-imgurl" type="url" [(ngModel)]="formData.image" name="image" placeholder="https://…">
         </div>
 
         <div class="form-group">
           <label for="adm-file">Enviar foto do computador</label>
           <input id="adm-file" type="file" accept="image/*" (change)="onImageFile($event)">
-          <p class="hint">Máx. ~1,2 MB. Fica salva no navegador (localStorage) — para produção use servidor ou CDN.</p>
+          <p class="hint">Máx. ~1,2 MB.</p>
           <button *ngIf="formData.image" type="button" class="btn-clear-img" (click)="clearImage()">Remover imagem</button>
           <div *ngIf="formData.image" class="img-preview-wrap">
             <img [src]="formData.image" alt="Pré-visualização" class="img-preview">

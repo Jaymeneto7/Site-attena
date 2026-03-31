@@ -17,73 +17,133 @@ type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'mascu
     <app-navbar />
     <app-hero />
 
-    <section class="catalog">
-      <div class="filters">
-        <span class="filter-label">Categoria</span>
-        <button
-          *ngFor="let f of filters"
-          class="pill"
-          [class.active]="activeFilter === f.key"
-          (click)="setFilter(f.key)"
-        >{{ f.label }}</button>
-      </div>
+    <div class="catalog-layout">
 
-      <div class="grid">
-        <app-product-card
-          *ngFor="let p of filteredProducts"
-          [product]="p"
-        />
-      </div>
+      <aside class="catalog-sidebar">
+        <div class="sidebar-title">Categorias</div>
+        <nav class="sidebar-nav">
+          <button
+            *ngFor="let f of filters"
+            class="sidebar-item"
+            [class.active]="activeFilter === f.key"
+            (click)="setFilter(f.key)"
+          >
+            <span>{{ f.label }}</span>
+            <span class="sidebar-count">{{ countByFilter(f.key) }}</span>
+          </button>
+        </nav>
+      </aside>
 
-      <div *ngIf="filteredProducts.length === 0" class="empty">
-        Nenhum produto nessa categoria no momento.
-      </div>
-    </section>
+      <section class="catalog-content">
+        <div class="content-header">
+          <h2>{{ activeLabelText }}</h2>
+          <span class="content-count">{{ filteredProducts.length }} produto(s)</span>
+        </div>
+
+        <div class="grid">
+          <app-product-card
+            *ngFor="let p of filteredProducts"
+            [product]="p"
+          />
+        </div>
+
+        <div *ngIf="filteredProducts.length === 0" class="empty">
+          Nenhum produto nessa categoria no momento.
+        </div>
+      </section>
+
+    </div>
 
     <app-footer />
   `,
   styles: [`
-    .catalog { background: var(--color-bg); padding-bottom: 2rem; }
+    .catalog-layout {
+      display: flex;
+      background: #FCFAE5;
+      min-height: 60vh;
+    }
 
-    .filters {
-      padding: 1.5rem 1.5rem 1rem;
+    /* Sidebar */
+    .catalog-sidebar {
+      width: 200px;
+      min-width: 200px;
+      background: #fff;
+      border-right: 0.5px solid #d8d5c8;
+      padding: 1.5rem 0;
+      position: sticky;
+      top: 58px;
+      height: calc(100vh - 58px);
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      font-weight: 600;
+      padding: 0 1rem 0.75rem;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 0.5rem;
+    }
+
+    .sidebar-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      font-size: 0.875rem;
+      color: #555;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+      width: 100%;
+    }
+    .sidebar-item:hover { background: #f4f4f0; color: #395531; }
+    .sidebar-item.active { background: #395531; color: #FCFAE5; font-weight: 600; }
+    .sidebar-item.active .sidebar-count { background: rgba(252,250,229,0.25); color: #FCFAE5; }
+
+    .sidebar-count {
+      background: #f0ede4;
+      color: #888;
+      border-radius: 20px;
+      padding: 1px 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    /* Conteúdo */
+    .catalog-content { flex: 1; padding: 1.5rem; }
+
+    .content-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
     }
 
-    .filter-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #aaa;
-      margin-right: 4px;
+    .content-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #395531;
+      font-family: Georgia, serif;
+      margin: 0;
     }
 
-    .pill {
-      padding: 7px 18px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid var(--color-border-soft);
-      background: transparent;
-      color: var(--color-text);
-      transition: all 0.15s;
-    }
-    .pill:hover { border-color: var(--color-primary); }
-    .pill.active {
-      background: var(--color-primary);
-      color: var(--color-on-primary);
-      border-color: var(--color-primary);
-    }
+    .content-count { font-size: 0.8rem; color: #aaa; }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 14px;
-      padding: 0.5rem 1.5rem 1rem;
     }
 
     .empty {
@@ -91,6 +151,21 @@ type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'mascu
       padding: 3rem;
       color: #aaa;
       font-size: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .catalog-layout { flex-direction: column; }
+      .catalog-sidebar {
+        width: 100%;
+        min-width: unset;
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 0.5px solid #d8d5c8;
+        padding: 1rem 0.5rem;
+      }
+      .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
+      .sidebar-item { width: auto; }
     }
   `]
 })
@@ -105,7 +180,7 @@ export class CatalogComponent implements OnInit {
     { key: 'leggings',  label: 'Leggings' },
     { key: 'shorts',    label: 'Shorts' },
     { key: 'conjuntos', label: 'Conjuntos' },
-    //{ key: 'masculino', label: 'Masculino' },
+    // { key: 'masculino', label: 'Masculino' },
   ];
 
   constructor(private productService: ProductService) {}
@@ -120,5 +195,14 @@ export class CatalogComponent implements OnInit {
     this.filteredProducts = key === 'todos'
       ? this.allProducts
       : this.allProducts.filter(p => p.category === key);
+  }
+
+  countByFilter(key: FilterKey): number {
+    if (key === 'todos') return this.allProducts.length;
+    return this.allProducts.filter(p => p.category === key).length;
+  }
+
+  get activeLabelText(): string {
+    return this.filters.find(f => f.key === this.activeFilter)?.label ?? 'Todos';
   }
 }

@@ -241,17 +241,17 @@
 </style>
 
 <!-- Botão flutuante do carrinho -->
-<button class="cart-toggle-btn" (click)="showCart = true">
+<button *ngIf="!isAdminRoute" class="cart-toggle-btn" (click)="showCart = true">
   <span>🛒</span>
   <span>Sacola</span>
   <span class="cart-count" *ngIf="cartService.totalQty > 0">{{ cartService.totalQty }}</span>
 </button>
 
 <!-- Overlay -->
-<div class="cart-overlay" [class.active]="showCart" (click)="closeCart()"></div>
+<div *ngIf="!isAdminRoute" class="cart-overlay" [class.active]="showCart" (click)="closeCart()"></div>
 
 <!-- Painel lateral -->
-<div class="cart-panel" [class.active]="showCart">
+<div *ngIf="!isAdminRoute" class="cart-panel" [class.active]="showCart">
 
   <div class="cart-header">
     <h2>🛍️ Minha Sacola</h2>
