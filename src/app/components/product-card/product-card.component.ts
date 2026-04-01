@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
@@ -21,10 +21,18 @@ import { CartService } from '../../services/cart.service';
         <div class="card-cat">{{ product.categoryLabel }}</div>
         <div class="sizes" *ngIf="hasSizeObjects">
           <span
-            *ngFor="let size of sizeObjects"
+            *ngFor="let size of availableSizes"
             class="size"
-            [class.available]="size.available"
+            [class.selected]="selectedSize === size.label"
+            [class.available]="size.stock > 0"
+            (click)="size.stock > 0 ? selectSize(size.label) : null"
           >{{ size.label }}</span>
+        </div>
+
+        <!-- Aviso sem tamanho -->
+        <div class="size-warning" *ngIf="showSizeWarning">
+          <span class="warning-icon">⚠️</span>
+          <span class="warning-text">Selecione um tamanho!</span>
         </div>
         <div class="card-footer">
           <div class="prices">
@@ -52,9 +60,32 @@ import { CartService } from '../../services/cart.service';
     .card-body { padding: 12px 14px 14px; }
     .card-name { font-size: 14px; font-weight: 500; color: var(--color-text); margin-bottom: 2px; }
     .card-cat { font-size: 11px; color: #aaa; margin-bottom: 10px; }
-    .sizes { display: flex; gap: 4px; margin-bottom: 10px; }
-    .size { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 0.5px solid #ddd; color: #ccc; }
-    .size.available { border-color: var(--color-muted); color: var(--color-muted); }
+    .sizes { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .size { font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid #d8d5c8; color: #888; cursor: pointer; transition: all 0.15s; }
+    .size.available:hover { border-color: var(--color-muted); color: var(--color-muted); }
+    .size.selected { border-color: var(--color-muted); background: var(--color-muted); color: var(--color-on-primary); font-weight: 600; }
+    .size:not(.available) { cursor: not-allowed; opacity: 0.5; }
+    .size-warning { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      background: rgba(140, 29, 18, 0.1); 
+      color: var(--color-danger); 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      border: 1px solid rgba(140, 29, 18, 0.2); 
+      margin-bottom: 8px; 
+      font-size: 12px; 
+      font-weight: 500; 
+      animation: warningPulse 0.3s ease-out; 
+    }
+    .warning-icon { font-size: 14px; }
+    .warning-text { flex: 1; }
+    @keyframes warningPulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); opacity: 1; }
+    }
     .card-footer { display: flex; align-items: center; justify-content: space-between; }
     .prices { display: flex; align-items: baseline; gap: 6px; }
     .price { font-size: 16px; font-weight: 500; color: var(--color-danger); }
@@ -64,20 +95,27 @@ import { CartService } from '../../services/cart.service';
     .add-btn:hover { opacity: 0.9; }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnChanges {
   @Input() product!: Product;
+  selectedSize: string | null = null;
+  showSizeWarning = false;
 
   constructor(private cartService: CartService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['product']) {
+      this.selectedSize = null;
+      this.showSizeWarning = false;
+    }
+  }
 
   get hasSizeObjects(): boolean {
     return Array.isArray(this.product.sizes) && this.product.sizes.length > 0;
   }
 
-  get sizeObjects(): { label: string; available: boolean }[] {
-    return this.product.sizes.map(s => ({
-      label: s.label,
-      available: s.stock > 0,
-    }));
+  get availableSizes(): { label: string; stock: number }[] {
+    return (this.product.sizes as { label: string; stock: number }[])
+      .filter(s => s.stock > 0);
   }
 
   get badgeLabel(): string {
@@ -86,16 +124,58 @@ export class ProductCardComponent {
   }
 
   get isInCart(): boolean {
-  return this.cartService.cartItems.some(i => i.id === Number(this.product.id));
-}
+    const productId = Number(this.product.id);
+    if (Number.isNaN(productId)) {
+      return false;
+    }
 
- addToCart(): void {
+    if (this.hasSizeObjects) {
+      if (!this.selectedSize) {
+        return false;
+      }
+      return this.cartService.isInCart(productId, this.selectedSize);
+    }
+
+    return this.cartService.isInCart(productId, undefined);
+  }
+
+  selectSize(label: string): void {
+    this.selectedSize = label;
+    this.showSizeWarning = false;
+  }
+
+  addToCart(): void {
+    if (this.hasSizeObjects && !this.selectedSize) {
+      this.showSizeWarning = true;
+      return;
+    }
+
+    const id = Number(this.product.id);
+    const sizeToAdd = this.hasSizeObjects ? this.selectedSize || undefined : undefined;
+
+    console.log('🛒 ADD:', { 
+      id, 
+      name: this.product.name, 
+      size: sizeToAdd, 
+      selectedSize: this.selectedSize,
+      hasSizeObjects: this.hasSizeObjects 
+    });
+
     this.cartService.addItem({
-      id: Number(this.product.id),
+      id: id,
       name: this.product.name,
       emoji: this.product.emoji ?? '🛍️',
       category: this.product.category ?? '',
-      price: this.product.price
+      price: this.product.price,
+      size: sizeToAdd,
     });
+
+    // IMPORTANTE: Reset do tamanho selecionado após adicionar
+    console.log('🔄 Resetando selectedSize de', this.selectedSize, 'para null');
+    this.selectedSize = null;
+    this.showSizeWarning = false;
+    
+    // Mostrar mensagem de confirmação
+    alert('Produto adicionado à sacola! 🛒');
   }
 }

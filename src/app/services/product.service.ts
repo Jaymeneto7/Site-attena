@@ -124,7 +124,23 @@ function normalizeSize(raw: unknown): ProductSize {
 
 function normalizeProduct(p: Product): Product {
   const sizes = (p.sizes ?? []).map(s => normalizeSize(s as unknown));
-  return { ...p, sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }] };
+  
+  // Garantir que ID é sempre um número válido
+  let id: number | string = p.id;
+  if (typeof id === 'string') {
+    const numId = Number(id);
+    id = isNaN(numId) ? 0 : numId;
+  } else if (typeof id === 'number' && isNaN(id)) {
+    id = 0;
+  } else if (id == null) {
+    id = 0;
+  }
+  
+  return { 
+    ...p, 
+    id: id,
+    sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }] 
+  };
 }
 
 // Converte produto do Supabase para o modelo local
@@ -189,7 +205,6 @@ export class ProductService {
     if (data && data.length > 0) {
       this.products = data.map(row => fromSupabase(row as Record<string, unknown>));
       this.useSupabase = true;
-      console.log('✅ Produtos carregados do Supabase:', this.products.length);
     } else {
       this.loadFromStorage();
       await this.migrateToSupabase();
