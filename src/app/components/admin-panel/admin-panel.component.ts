@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -16,13 +17,14 @@ type CategoryKey = NonNullable<Product['category']>;
   templateUrl: './admin-panel.component.html',
   styleUrls: ['./admin-panel.component.css']
 })
-export class AdminPanelComponent implements OnInit {
+export class AdminPanelComponent implements OnInit, OnDestroy {
 
   showLoginModal = false;
   showProductForm = false;
   activeCategory = 'todos';
   products: Product[] = [];
   editingProduct: Product | null = null;
+  private productsSub?: Subscription;
 
   readonly categories: { key: CategoryKey; label: string }[] = [
     { key: 'tops', label: 'Tops / Top feminino' },
@@ -60,15 +62,24 @@ export class AdminPanelComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    if (!this.authService.isLogged || !this.authService.isAdmin) {
-      if (this.authService.isLogged && !this.authService.isAdmin) {
-        this.authService.logout();
-      }
-      this.showLoginModal = true;
-    } else {
-      this.loadProducts();
+  if (!this.authService.isLogged || !this.authService.isAdmin) {
+    if (this.authService.isLogged && !this.authService.isAdmin) {
+      this.authService.logout();
     }
+    this.showLoginModal = true;
+  } else {
+    this.loadProducts();
+
+    // Escuta quando o Supabase terminar de carregar
+    this.productsSub = this.productService.productsLoaded.subscribe(() => {
+      this.loadProducts();
+    });
   }
+}
+
+ngOnDestroy(): void {
+  this.productsSub?.unsubscribe();
+}
 
   get canUsePanel(): boolean {
     return this.authService.isLogged && this.authService.isAdmin;
@@ -199,47 +210,56 @@ export class AdminPanelComponent implements OnInit {
     this.editingProduct = null;
   }
 
-  submitForm(): void {
-    const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
-    const sizes: ProductSize[] = this.formSizes
-      .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
-      .filter(row => row.label.length > 0);
+  async submitForm(): Promise<void> {
+  const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
+  const sizes: ProductSize[] = this.formSizes
+    .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
+    .filter(row => row.label.length > 0);
 
-    if (!sizes.length) { alert('Informe ao menos um tamanho com nome.'); return; }
+  if (!sizes.length) { alert('Informe ao menos um tamanho com nome.'); return; }
 
-    const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
-      name: this.formData.name.trim(),
-      description: this.formData.description.trim() || undefined,
-      price: Number(this.formData.price),
-      originalPrice: this.formData.originalPrice != null && this.formData.originalPrice > 0
-        ? Number(this.formData.originalPrice) : undefined,
-      category: this.formData.category,
-      categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
-      badge: this.formData.badge || undefined,
-      sizes,
-      colors: colors.length ? colors : undefined,
-      image: this.formData.image.trim() || undefined,
-      emoji: this.formData.emoji.trim() || '🛍️',
-      bgColor: this.formData.bgColor.trim() || '#f0ede0',
-      whatsappMessage: undefined,
-    };
+  const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
+    name: this.formData.name.trim(),
+    description: this.formData.description.trim() || undefined,
+    price: Number(this.formData.price),
+    originalPrice: this.formData.originalPrice != null && this.formData.originalPrice > 0
+      ? Number(this.formData.originalPrice) : undefined,
+    category: this.formData.category,
+    categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
+    badge: this.formData.badge || undefined,
+    sizes,
+    colors: colors.length ? colors : undefined,
+    image: this.formData.image.trim() || undefined,
+    emoji: this.formData.emoji.trim() || '🛍️',
+    bgColor: this.formData.bgColor.trim() || '#f0ede0',
+    whatsappMessage: undefined,
+  };
 
-    if (!payload.name || payload.price < 0) { alert('Preencha nome e preço válidos.'); return; }
+  if (!payload.name || payload.price < 0) { alert('Preencha nome e preço válidos.'); return; }
 
+  try {
     if (this.editingProduct) {
-      this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
+      await this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
     } else {
-      this.productService.createProduct(payload as Omit<Product, 'id'>);
+      await this.productService.createProduct(payload as Omit<Product, 'id'>);
     }
-
     this.loadProducts();
     this.closeForm();
+  } catch (err) {
+    alert('Erro ao salvar produto. Tente novamente.');
+    console.error(err);
   }
+}
 
-  deleteProduct(id: string | number): void {
-    if (confirm('Tem certeza que deseja excluir este produto?')) {
-      this.productService.deleteProduct(id);
+async deleteProduct(id: string | number): Promise<void> {
+  if (confirm('Tem certeza que deseja excluir este produto?')) {
+    try {
+      await this.productService.deleteProduct(id);
       this.loadProducts();
+    } catch (err) {
+      alert('Erro ao excluir produto.');
+      console.error(err);
     }
   }
+}
 }

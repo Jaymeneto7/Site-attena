@@ -1,5 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, EventEmitter } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { Product, ProductSize } from '../models/product.model';
+import { SupabaseService } from './supabase.service';
+
 
 const STORAGE_KEY = 'athena_products_v1';
 
@@ -111,33 +114,115 @@ const SEED_PRODUCTS: Product[] = [
 ];
 
 function normalizeSize(raw: unknown): ProductSize {
-  if (typeof raw === 'string') {
-    return { label: raw.trim(), stock: 10 };
-  }
+  if (typeof raw === 'string') return { label: raw.trim(), stock: 10 };
   const o = raw as { label?: string; stock?: number; available?: boolean };
   const label = String(o?.label ?? '').trim() || '?';
   let stock = typeof o?.stock === 'number' ? o.stock : NaN;
-  if (Number.isNaN(stock)) {
-    stock = o?.available === false ? 0 : 5;
-  }
+  if (Number.isNaN(stock)) stock = o?.available === false ? 0 : 5;
   return { label, stock: Math.max(0, Math.floor(stock)) };
 }
 
 function normalizeProduct(p: Product): Product {
   const sizes = (p.sizes ?? []).map(s => normalizeSize(s as unknown));
+  return { ...p, sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }] };
+}
+
+// Converte produto do Supabase para o modelo local
+function fromSupabase(row: Record<string, unknown>): Product {
+  return normalizeProduct({
+    id: row['id'] as string,
+    name: row['name'] as string,
+    description: row['description'] as string | undefined,
+    price: Number(row['price']),
+    originalPrice: row['original_price'] ? Number(row['original_price']) : undefined,
+    category: row['category'] as 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'masculino' | undefined,
+    categoryLabel: row['category_label'] as string | undefined,
+    badge: row['badge'] as 'novo' | 'hot' | 'sale' | undefined,
+    emoji: row['emoji'] as string | undefined,
+    bgColor: row['bg_color'] as string | undefined,
+    image: row['image'] as string | undefined,
+    colors: row['colors'] as string[] | undefined,
+    sizes: row['sizes'] as ProductSize[] ?? [],
+    whatsappMessage: row['whatsapp_message'] as string | undefined,
+  });
+}
+
+// Converte produto local para o formato do Supabase
+function toSupabase(p: Omit<Product, 'id'>): Record<string, unknown> {
   return {
-    ...p,
-    sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }],
+    name: p.name,
+    description: p.description ?? null,
+    price: p.price,
+    original_price: p.originalPrice ?? null,
+    category: p.category ?? null,
+    category_label: p.categoryLabel ?? null,
+    badge: p.badge ?? null,
+    emoji: p.emoji ?? null,
+    bg_color: p.bgColor ?? null,
+    image: p.image ?? null,
+    colors: p.colors ?? null,
+    sizes: p.sizes ?? [],
+    whatsapp_message: p.whatsappMessage ?? null,
   };
 }
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private whatsappNumber = '5500000000000';
+  private whatsappNumber = '5562982437603';
   private products: Product[] = [];
+  private useSupabase = false;
+  productsLoaded = new BehaviorSubject<Product[]>([]);
 
-  constructor() {
+  constructor(private supabaseService: SupabaseService) {
+    this.init();
+  }
+
+  private async init(): Promise<void> {
+  try {
+    const { data, error } = await this.supabaseService.client
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      this.products = data.map(row => fromSupabase(row as Record<string, unknown>));
+      this.useSupabase = true;
+      console.log('✅ Produtos carregados do Supabase:', this.products.length);
+    } else {
+      this.loadFromStorage();
+      await this.migrateToSupabase();
+    }
+  } catch (err) {
+    console.warn('⚠️ Supabase indisponível, usando localStorage:', err);
     this.loadFromStorage();
+  }
+
+  // Notifica que os produtos estão prontos
+  this.productsLoaded.next(this.products);
+}
+
+  private async migrateToSupabase(): Promise<void> {
+    try {
+      for (const p of this.products) {
+        const { id, ...rest } = p;
+        await this.supabaseService.client
+          .from('products')
+          .insert(toSupabase(rest));
+      }
+      this.useSupabase = true;
+      console.log('✅ Produtos migrados para o Supabase!');
+      // Recarrega com IDs do Supabase
+      const { data } = await this.supabaseService.client
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (data) this.products = data.map(row => fromSupabase(row as Record<string, unknown>));
+    } catch (err) {
+      console.warn('⚠️ Falha na migração:', err);
+    }
+    this.productsLoaded.next(this.products);
   }
 
   private loadFromStorage(): void {
@@ -146,11 +231,8 @@ export class ProductService {
       try {
         const parsed = JSON.parse(raw) as Product[];
         this.products = parsed.map(normalizeProduct);
-        this.save();
         return;
-      } catch {
-        /* fallback seed */
-      }
+      } catch { /* fallback seed */ }
     }
     this.products = SEED_PRODUCTS.map(p => normalizeProduct({ ...p }));
     this.save();
@@ -161,10 +243,7 @@ export class ProductService {
   }
 
   private nextId(): number {
-    const nums = this.products.map(p => {
-      const n = Number(p.id);
-      return Number.isFinite(n) ? n : 0;
-    });
+    const nums = this.products.map(p => { const n = Number(p.id); return Number.isFinite(n) ? n : 0; });
     return (nums.length ? Math.max(...nums) : 0) + 1;
   }
 
@@ -176,49 +255,52 @@ export class ProductService {
     return this.products.find(p => String(p.id) === String(id));
   }
 
-  /** Novo produto (gera id automaticamente) */
-  createProduct(data: Omit<Product, 'id'>): Product {
+  async createProduct(data: Omit<Product, 'id'>): Promise<Product> {
+    if (this.useSupabase) {
+      const { data: rows, error } = await this.supabaseService.client
+        .from('products')
+        .insert(toSupabase(data))
+        .select()
+        .single();
+      if (error) throw error;
+      const product = fromSupabase(rows as Record<string, unknown>);
+      this.products.push(product);
+      return product;
+    }
+    // fallback localStorage
     const id = this.nextId();
-    const normalized = normalizeProduct({
-      ...data,
-      id,
-      whatsappMessage: data.whatsappMessage ?? this.defaultWhatsappMessage({ ...data, id } as Product),
-    });
+    const normalized = normalizeProduct({ ...data, id, whatsappMessage: data.whatsappMessage ?? this.defaultWhatsappMessage({ ...data, id } as Product) });
     this.products.push(normalized);
     this.save();
     return normalized;
   }
 
-  addProduct(product: Product): void {
-    const id = product.id ?? this.nextId();
-    const normalized = normalizeProduct({ ...product, id });
-    if (!normalized.whatsappMessage) {
-      normalized.whatsappMessage = this.defaultWhatsappMessage(normalized);
+  async updateProduct(product: Product): Promise<void> {
+    if (this.useSupabase) {
+      const { id, ...rest } = product;
+      const { error } = await this.supabaseService.client
+        .from('products')
+        .update(toSupabase(rest))
+        .eq('id', id);
+      if (error) throw error;
     }
-    this.products.push(normalized);
-    this.save();
-  }
-
-  updateProduct(product: Product): void {
     const i = this.products.findIndex(p => String(p.id) === String(product.id));
-    if (i === -1) return;
-    const normalized = normalizeProduct({ ...product });
-    if (!normalized.whatsappMessage) {
-      normalized.whatsappMessage = this.defaultWhatsappMessage(normalized);
+    if (i !== -1) {
+      this.products[i] = normalizeProduct({ ...product });
+      if (!this.useSupabase) this.save();
     }
-    this.products[i] = normalized;
-    this.save();
   }
 
-  deleteProduct(id: string | number): void {
+  async deleteProduct(id: string | number): Promise<void> {
+    if (this.useSupabase) {
+      const { error } = await this.supabaseService.client
+        .from('products')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    }
     this.products = this.products.filter(p => String(p.id) !== String(id));
-    this.save();
-  }
-
-  /** Reseta para o catálogo inicial (útil em dev) */
-  resetToSeed(): void {
-    this.products = SEED_PRODUCTS.map(p => normalizeProduct({ ...p }));
-    this.save();
+    if (!this.useSupabase) this.save();
   }
 
   totalStock(p: Product): number {
@@ -230,12 +312,10 @@ export class ProductService {
   }
 
   openWhatsApp(message: string): void {
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${this.whatsappNumber}?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/${this.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
   }
 
   openWhatsAppGeneral(): void {
-    const message = 'Olá! Visitei o catálogo da Attena e gostaria de fazer um pedido.';
-    this.openWhatsApp(message);
+    this.openWhatsApp('Olá! Visitei o catálogo da Attena e gostaria de fazer um pedido.');
   }
 }
