@@ -43,9 +43,10 @@ export class AppComponent implements OnInit, OnDestroy {
     const items = this.cartService.getItems();
     if (!items.length) return;
     const WHATSAPP_NUMBER = '5562982437603';
-    const lines = items.map(i =>
-      `• ${i.name} (x${i.quantity ?? 1}) — R$ ${i.price.toFixed(2).replace('.', ',')}`
-    ).join('\n');
+    const lines = items.map(i => {
+      const sizeInfo = i.size ? ` (${i.size})` : '';
+      return `• ${i.name}${sizeInfo} x${i.quantity ?? 1} — R$ ${i.price.toFixed(2).replace('.', ',')}`;
+    }).join('\n');
     const total = this.cartService.getTotalPrice().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const msg = `*Novo Pedido:*\n\n${lines}\n\n*Total: ${total}*`;
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');

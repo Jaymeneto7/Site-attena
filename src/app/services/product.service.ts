@@ -293,11 +293,24 @@ export class ProductService {
   async updateProduct(product: Product): Promise<void> {
     if (this.useSupabase) {
       const { id, ...rest } = product;
-      const { error } = await this.supabaseService.client
+      const payload = toSupabase(rest);
+      console.log('🔄 Supabase update payload:', { id, payload });
+
+      const { data, error } = await this.supabaseService.client
         .from('products')
-        .update(toSupabase(rest))
-        .eq('id', id);
-      if (error) throw error;
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase update failed:', error, { id, payload });
+        throw error;
+      }
+
+      if (data) {
+        this.products = this.products.map(p => String(p.id) === String(id) ? fromSupabase(data as Record<string, unknown>) : p);
+      }
     }
     const i = this.products.findIndex(p => String(p.id) === String(product.id));
     if (i !== -1) {

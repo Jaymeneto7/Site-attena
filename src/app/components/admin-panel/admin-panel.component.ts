@@ -218,12 +218,17 @@ ngOnDestroy(): void {
 
   if (!sizes.length) { alert('Informe ao menos um tamanho com nome.'); return; }
 
+  const parsedPrice = Number(String(this.formData.price).replace(',', '.'));
+  const parsedOriginalPrice = this.formData.originalPrice != null
+    ? Number(String(this.formData.originalPrice).replace(',', '.'))
+    : undefined;
+
   const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
     name: this.formData.name.trim(),
     description: this.formData.description.trim() || undefined,
-    price: Number(this.formData.price),
-    originalPrice: this.formData.originalPrice != null && this.formData.originalPrice > 0
-      ? Number(this.formData.originalPrice) : undefined,
+    price: parsedPrice,
+    originalPrice: typeof parsedOriginalPrice === 'number' && Number.isFinite(parsedOriginalPrice) && parsedOriginalPrice > 0
+      ? parsedOriginalPrice : undefined,
     category: this.formData.category,
     categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
     badge: this.formData.badge || undefined,
@@ -235,7 +240,10 @@ ngOnDestroy(): void {
     whatsappMessage: undefined,
   };
 
-  if (!payload.name || payload.price < 0) { alert('Preencha nome e preço válidos.'); return; }
+  if (!payload.name || !Number.isFinite(payload.price) || payload.price < 0) {
+    alert('Preencha nome e preço válidos.');
+    return;
+  }
 
   try {
     if (this.editingProduct) {
