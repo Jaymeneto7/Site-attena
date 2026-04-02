@@ -1,4 +1,4 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Product, ProductSize } from '../models/product.model';
 import { SupabaseService } from './supabase.service';
@@ -125,14 +125,15 @@ function normalizeSize(raw: unknown): ProductSize {
 function normalizeProduct(p: Product): Product {
   const sizes = (p.sizes ?? []).map(s => normalizeSize(s as unknown));
   
-  // Garantir que ID é sempre um número válido
+  // Preserva UUID (string) do Supabase; converte para número apenas IDs numéricos locais
   let id: number | string = p.id;
-  if (typeof id === 'string') {
-    const numId = Number(id);
-    id = isNaN(numId) ? 0 : numId;
-  } else if (typeof id === 'number' && isNaN(id)) {
+  if (id == null) {
     id = 0;
-  } else if (id == null) {
+  } else if (typeof id === 'string') {
+    const numId = Number(id);
+    // Se não for um número puro (ex: UUID), mantém como string
+    id = Number.isFinite(numId) && String(numId) === id.trim() ? numId : id;
+  } else if (typeof id === 'number' && isNaN(id)) {
     id = 0;
   }
   
@@ -189,7 +190,7 @@ export class ProductService {
   private useSupabase = false;
   productsLoaded = new BehaviorSubject<Product[]>([]);
 
-  constructor(private supabaseService: SupabaseService) {
+  constructor(private supabaseService: SupabaseService, private ngZone: NgZone) {
     this.init();
   }
 
@@ -214,8 +215,8 @@ export class ProductService {
     this.loadFromStorage();
   }
 
-  // Notifica que os produtos estão prontos
-  this.productsLoaded.next(this.products);
+  // Notifica que os produtos estão prontos (dentro da zone para disparar change detection)
+  this.ngZone.run(() => this.productsLoaded.next(this.products));
 }
 
   private async migrateToSupabase(): Promise<void> {
@@ -237,7 +238,7 @@ export class ProductService {
     } catch (err) {
       console.warn('⚠️ Falha na migração:', err);
     }
-    this.productsLoaded.next(this.products);
+    this.ngZone.run(() => this.productsLoaded.next(this.products));
   }
 
   private loadFromStorage(): void {
