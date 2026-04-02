@@ -43,7 +43,7 @@
 
             <div class="grid">
               <app-product-card
-                *ngFor="let p of filteredProducts"
+                *ngFor="let p of filteredProducts; trackBy: trackByProductId"
                 [product]="p"
               />
             </div>
@@ -210,6 +210,10 @@
         this.filteredProducts = key === 'todos'
           ? this.allProducts
           : this.allProducts.filter(p => p.category === key);
+      }
+
+      trackByProductId(index: number, product: Product): number | string {
+        return product.id;
       }
 
       countByFilter(key: FilterKey): number {

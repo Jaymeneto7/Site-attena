@@ -39,9 +39,9 @@ export class CartComponent {
 
   constructor(public cartService: CartService) {}
 
-  get cartItems(): CartItem[] { return this.cartService.cartItems; }
-  get totalQty(): number { return this.cartService.totalQty; }
-  get totalValue(): number { return this.cartService.totalValue; }
+  get cartItems(): CartItem[] { return this.cartService.getItems(); }
+  get totalQty(): number { return this.cartService.getTotalItems(); }
+  get totalValue(): number { return this.cartService.getTotalPrice(); }
 
   isInCart(id: number): boolean {
     return this.cartItems.some(i => i.id === id);
@@ -52,7 +52,10 @@ export class CartComponent {
   }
 
   changeQty(id: number, delta: number): void {
-    this.cartService.updateQty(id, delta);
+    const item = this.cartItems.find(i => i.id === id);
+    if (item) {
+      this.cartService.updateQuantity(id, (item.quantity ?? 1) + delta);
+    }
   }
 
   removeItem(id: number): void {
@@ -60,13 +63,13 @@ export class CartComponent {
   }
 
   clearCart(): void {
-    this.cartService.clear();
+    this.cartService.clearCart();
   }
 
   sendWhatsApp(): void {
     if (!this.cartItems.length) return;
     const lines = this.cartItems
-      .map(i => `▸ ${i.emoji} ${i.name} (x${i.qty}) — ${this.fmt(i.qty * i.price)}`)
+      .map(i => `▸ ${i.emoji} ${i.name} (x${i.quantity ?? 1}) — ${this.fmt((i.quantity ?? 1) * i.price)}`)
       .join('\n');
     const msg = `🛍️ *Novo Pedido:*\n\n${lines}\n\n💰 *Total: ${this.fmt(this.totalValue)}*`;
     window.open(`https://wa.me/${this.WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');

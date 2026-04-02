@@ -26,6 +26,10 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   editingProduct: Product | null = null;
   private productsSub?: Subscription;
 
+  formError = '';
+  showSuccessToast = false;
+  successToastMessage = '';
+
   readonly categories: { key: CategoryKey; label: string }[] = [
     { key: 'tops', label: 'Tops / Top feminino' },
     { key: 'leggings', label: 'Leggings' },
@@ -208,22 +212,29 @@ ngOnDestroy(): void {
   closeForm(): void {
     this.showProductForm = false;
     this.editingProduct = null;
+    this.formError = '';
   }
 
   async submitForm(): Promise<void> {
+  this.formError = '';
   const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
   const sizes: ProductSize[] = this.formSizes
     .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
     .filter(row => row.label.length > 0);
 
-  if (!sizes.length) { alert('Informe ao menos um tamanho com nome.'); return; }
+  if (!sizes.length) { this.formError = 'Informe ao menos um tamanho com nome.'; return; }
+
+  const parsedPrice = Number(String(this.formData.price).replace(',', '.'));
+  const parsedOriginalPrice = this.formData.originalPrice != null
+    ? Number(String(this.formData.originalPrice).replace(',', '.'))
+    : undefined;
 
   const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
     name: this.formData.name.trim(),
     description: this.formData.description.trim() || undefined,
-    price: Number(this.formData.price),
-    originalPrice: this.formData.originalPrice != null && this.formData.originalPrice > 0
-      ? Number(this.formData.originalPrice) : undefined,
+    price: parsedPrice,
+    originalPrice: typeof parsedOriginalPrice === 'number' && Number.isFinite(parsedOriginalPrice) && parsedOriginalPrice > 0
+      ? parsedOriginalPrice : undefined,
     category: this.formData.category,
     categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
     badge: this.formData.badge || undefined,
@@ -235,20 +246,35 @@ ngOnDestroy(): void {
     whatsappMessage: undefined,
   };
 
-  if (!payload.name || payload.price < 0) { alert('Preencha nome e preço válidos.'); return; }
+  if (!payload.name || !Number.isFinite(payload.price) || payload.price < 0) {
+    this.formError = 'Preencha nome e preço válidos.';
+    return;
+  }
 
   try {
     if (this.editingProduct) {
       await this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
+      this.loadProducts();
+      this.showToast('Produto atualizado com sucesso!');
     } else {
       await this.productService.createProduct(payload as Omit<Product, 'id'>);
+      this.loadProducts();
+      this.showToast('Produto cadastrado com sucesso!');
     }
-    this.loadProducts();
-    this.closeForm();
-  } catch (err) {
-    alert('Erro ao salvar produto. Tente novamente.');
+  } catch (err: unknown) {
+    const supaErr = err as { message?: string; code?: string };
+    this.formError = supaErr?.message ?? 'Erro ao salvar produto. Tente novamente.';
     console.error(err);
   }
+}
+
+private showToast(message: string): void {
+  this.successToastMessage = message;
+  this.showSuccessToast = true;
+  setTimeout(() => {
+    this.showSuccessToast = false;
+    this.closeForm();
+  }, 2000);
 }
 
 async deleteProduct(id: string | number): Promise<void> {

@@ -62,12 +62,12 @@
           <div class="cart-item-info">
             <div class="cart-item-name">{{ item.name }}</div>
             <div class="cart-item-price">
-              {{ fmt(item.price) }} × {{ item.qty }} = {{ fmt(item.price * item.qty) }}
+              {{ fmt(item.price) }} × {{ item.quantity ?? 1 }} = {{ fmt(item.price * (item.quantity ?? 1)) }}
             </div>
           </div>
           <div class="qty-ctrl">
             <button class="qty-btn" (click)="changeQty(item.id, -1)">−</button>
-            <span class="qty-num">{{ item.qty }}</span>
+            <span class="qty-num">{{ item.quantity ?? 1 }}</span>
             <button class="qty-btn" (click)="changeQty(item.id, 1)">+</button>
           </div>
           <button class="remove-btn" (click)="removeItem(item.id)" title="Remover">✕</button>

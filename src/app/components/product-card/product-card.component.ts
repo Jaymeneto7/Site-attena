@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
@@ -8,38 +8,55 @@ import { CartService } from '../../services/cart.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="card">
-      <div class="card-img" [style.background]="product.bgColor || '#f4f4f0'">
-        <span *ngIf="product.badge" class="badge" [ngClass]="'badge-' + product.badge">
-          {{ badgeLabel }}
-        </span>
-        <img *ngIf="product.image" class="card-photo" [src]="product.image" [alt]="product.name" />
-        <span *ngIf="!product.image" class="emoji">{{ product.emoji }}</span>
-      </div>
-      <div class="card-body">
-        <div class="card-name">{{ product.name }}</div>
-        <div class="card-cat">{{ product.categoryLabel }}</div>
-        <div class="sizes" *ngIf="hasSizeObjects">
-          <span
-            *ngFor="let size of sizeObjects"
-            class="size"
-            [class.available]="size.available"
-          >{{ size.label }}</span>
+    <div class="card-wrapper">
+      <div class="card">
+        <div class="card-img" [style.background]="product.bgColor || '#f4f4f0'">
+          <span *ngIf="product.badge" class="badge" [ngClass]="'badge-' + product.badge">
+            {{ badgeLabel }}
+          </span>
+          <img *ngIf="product.image" class="card-photo" [src]="product.image" [alt]="product.name" />
+          <span *ngIf="!product.image" class="emoji">{{ product.emoji }}</span>
         </div>
-        <div class="card-footer">
-          <div class="prices">
-            <span class="price">R$ {{ product.price }}</span>
-            <span *ngIf="product.originalPrice" class="price-old">R$ {{ product.originalPrice }}</span>
+        <div class="card-body">
+          <div class="card-name">{{ product.name }}</div>
+          <div class="card-cat">{{ product.categoryLabel }}</div>
+          <div class="sizes" *ngIf="hasSizeObjects">
+            <span
+              *ngFor="let size of availableSizes"
+              class="size"
+              [class.selected]="selectedSize === size.label"
+              [class.available]="size.stock > 0"
+              (click)="size.stock > 0 ? selectSize(size.label) : null"
+            >{{ size.label }}</span>
           </div>
-          <button class="add-btn" [class.added]="isInCart" (click)="addToCart()">
-            <span *ngIf="!isInCart">🛒 Adicionar</span>
-            <span *ngIf="isInCart">✓ Adicionado</span>
-          </button>
+
+          <!-- Aviso sem tamanho -->
+          <div class="size-warning" *ngIf="showSizeWarning">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-text">Selecione um tamanho!</span>
+          </div>
+          <div class="card-footer">
+            <div class="prices">
+              <span class="price">R$ {{ product.price }}</span>
+              <span *ngIf="product.originalPrice" class="price-old">R$ {{ product.originalPrice }}</span>
+            </div>
+            <button class="add-btn" [class.added]="isInCart" (click)="addToCart()">
+              <span *ngIf="!isInCart">🛒 Adicionar</span>
+              <span *ngIf="isInCart">✓ Adicionado</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Mensagem de sucesso -->
+      <div class="success-message" *ngIf="showSuccessMessage">
+        <span class="success-icon">✅</span>
+        <span class="success-text">Produto adicionado à sacola!</span>
       </div>
     </div>
   `,
   styles: [`
+    .card-wrapper { position: relative; }
     .card { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s, transform 0.15s; }
     .card:hover { border-color: var(--color-muted); transform: translateY(-2px); }
     .card-img { height: 160px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
@@ -52,9 +69,32 @@ import { CartService } from '../../services/cart.service';
     .card-body { padding: 12px 14px 14px; }
     .card-name { font-size: 14px; font-weight: 500; color: var(--color-text); margin-bottom: 2px; }
     .card-cat { font-size: 11px; color: #aaa; margin-bottom: 10px; }
-    .sizes { display: flex; gap: 4px; margin-bottom: 10px; }
-    .size { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 0.5px solid #ddd; color: #ccc; }
-    .size.available { border-color: var(--color-muted); color: var(--color-muted); }
+    .sizes { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .size { font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid #d8d5c8; color: #888; cursor: pointer; transition: all 0.15s; }
+    .size.available:hover { border-color: var(--color-muted); color: var(--color-muted); }
+    .size.selected { border-color: var(--color-muted); background: var(--color-muted); color: var(--color-on-primary); font-weight: 600; }
+    .size:not(.available) { cursor: not-allowed; opacity: 0.5; }
+    .size-warning { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      background: rgba(140, 29, 18, 0.1); 
+      color: var(--color-danger); 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      border: 1px solid rgba(140, 29, 18, 0.2); 
+      margin-bottom: 8px; 
+      font-size: 12px; 
+      font-weight: 500; 
+      animation: warningPulse 0.3s ease-out; 
+    }
+    .warning-icon { font-size: 14px; }
+    .warning-text { flex: 1; }
+    @keyframes warningPulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); opacity: 1; }
+    }
     .card-footer { display: flex; align-items: center; justify-content: space-between; }
     .prices { display: flex; align-items: baseline; gap: 6px; }
     .price { font-size: 16px; font-weight: 500; color: var(--color-danger); }
@@ -62,22 +102,56 @@ import { CartService } from '../../services/cart.service';
     .add-btn { display: flex; align-items: center; gap: 5px; background: var(--color-primary); color: var(--color-on-primary); border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .add-btn.added { background: var(--color-muted); }
     .add-btn:hover { opacity: 0.9; }
+    .success-message { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      background: rgba(0, 0, 0, 0.8); 
+      color: white; 
+      padding: 12px 16px; 
+      border-radius: 8px; 
+      font-size: 14px; 
+      font-weight: 500; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      z-index: 10; 
+      animation: successFade 0.3s ease-out; 
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); 
+      pointer-events: none; 
+    }
+    .success-icon { font-size: 16px; }
+    .success-text { flex: 1; }
+    @keyframes successFade {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnChanges {
   @Input() product!: Product;
+  selectedSize: string | null = null;
+  showSizeWarning = false;
+  showSuccessMessage = false;
 
   constructor(private cartService: CartService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['product']) {
+      this.selectedSize = null;
+      this.showSizeWarning = false;
+      this.showSuccessMessage = false;
+    }
+  }
 
   get hasSizeObjects(): boolean {
     return Array.isArray(this.product.sizes) && this.product.sizes.length > 0;
   }
 
-  get sizeObjects(): { label: string; available: boolean }[] {
-    return this.product.sizes.map(s => ({
-      label: s.label,
-      available: s.stock > 0,
-    }));
+  get availableSizes(): { label: string; stock: number }[] {
+    return (this.product.sizes as { label: string; stock: number }[])
+      .filter(s => s.stock > 0);
   }
 
   get badgeLabel(): string {
@@ -86,16 +160,61 @@ export class ProductCardComponent {
   }
 
   get isInCart(): boolean {
-  return this.cartService.cartItems.some(i => i.id === Number(this.product.id));
-}
+    const productId = Number(this.product.id);
+    if (Number.isNaN(productId)) {
+      return false;
+    }
 
- addToCart(): void {
+    if (this.hasSizeObjects) {
+      if (!this.selectedSize) {
+        return false;
+      }
+      return this.cartService.isInCart(productId, this.selectedSize);
+    }
+
+    return this.cartService.isInCart(productId, undefined);
+  }
+
+  selectSize(label: string): void {
+    this.selectedSize = label;
+    this.showSizeWarning = false;
+  }
+
+  addToCart(): void {
+    if (this.hasSizeObjects && !this.selectedSize) {
+      this.showSizeWarning = true;
+      return;
+    }
+
+    const id = Number(this.product.id);
+    const sizeToAdd = this.hasSizeObjects ? this.selectedSize || undefined : undefined;
+
+    console.log('🛒 ADD:', { 
+      id, 
+      name: this.product.name, 
+      size: sizeToAdd, 
+      selectedSize: this.selectedSize,
+      hasSizeObjects: this.hasSizeObjects 
+    });
+
     this.cartService.addItem({
-      id: Number(this.product.id),
+      id: id,
       name: this.product.name,
       emoji: this.product.emoji ?? '🛍️',
       category: this.product.category ?? '',
-      price: this.product.price
+      price: this.product.price,
+      size: sizeToAdd,
     });
+
+    // IMPORTANTE: Reset do tamanho selecionado após adicionar
+    console.log('🔄 Resetando selectedSize de', this.selectedSize, 'para null');
+    this.selectedSize = null;
+    this.showSizeWarning = false;
+    
+    // Mostrar mensagem de sucesso
+    this.showSuccessMessage = true;
+    setTimeout(() => {
+      this.showSuccessMessage = false;
+    }, 2000);
   }
 }

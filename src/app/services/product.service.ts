@@ -1,4 +1,4 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Product, ProductSize } from '../models/product.model';
 import { SupabaseService } from './supabase.service';
@@ -124,7 +124,24 @@ function normalizeSize(raw: unknown): ProductSize {
 
 function normalizeProduct(p: Product): Product {
   const sizes = (p.sizes ?? []).map(s => normalizeSize(s as unknown));
-  return { ...p, sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }] };
+  
+  // Preserva UUID (string) do Supabase; converte para número apenas IDs numéricos locais
+  let id: number | string = p.id;
+  if (id == null) {
+    id = 0;
+  } else if (typeof id === 'string') {
+    const numId = Number(id);
+    // Se não for um número puro (ex: UUID), mantém como string
+    id = Number.isFinite(numId) && String(numId) === id.trim() ? numId : id;
+  } else if (typeof id === 'number' && isNaN(id)) {
+    id = 0;
+  }
+  
+  return { 
+    ...p, 
+    id: id,
+    sizes: sizes.length ? sizes : [{ label: 'Único', stock: 0 }] 
+  };
 }
 
 // Converte produto do Supabase para o modelo local
@@ -173,7 +190,7 @@ export class ProductService {
   private useSupabase = false;
   productsLoaded = new BehaviorSubject<Product[]>([]);
 
-  constructor(private supabaseService: SupabaseService) {
+  constructor(private supabaseService: SupabaseService, private ngZone: NgZone) {
     this.init();
   }
 
@@ -189,7 +206,6 @@ export class ProductService {
     if (data && data.length > 0) {
       this.products = data.map(row => fromSupabase(row as Record<string, unknown>));
       this.useSupabase = true;
-      console.log('✅ Produtos carregados do Supabase:', this.products.length);
     } else {
       this.loadFromStorage();
       await this.migrateToSupabase();
@@ -199,8 +215,8 @@ export class ProductService {
     this.loadFromStorage();
   }
 
-  // Notifica que os produtos estão prontos
-  this.productsLoaded.next(this.products);
+  // Notifica que os produtos estão prontos (dentro da zone para disparar change detection)
+  this.ngZone.run(() => this.productsLoaded.next(this.products));
 }
 
   private async migrateToSupabase(): Promise<void> {
@@ -222,7 +238,7 @@ export class ProductService {
     } catch (err) {
       console.warn('⚠️ Falha na migração:', err);
     }
-    this.productsLoaded.next(this.products);
+    this.ngZone.run(() => this.productsLoaded.next(this.products));
   }
 
   private loadFromStorage(): void {
@@ -278,11 +294,24 @@ export class ProductService {
   async updateProduct(product: Product): Promise<void> {
     if (this.useSupabase) {
       const { id, ...rest } = product;
-      const { error } = await this.supabaseService.client
+      const payload = toSupabase(rest);
+      console.log('🔄 Supabase update payload:', { id, payload });
+
+      const { data, error } = await this.supabaseService.client
         .from('products')
-        .update(toSupabase(rest))
-        .eq('id', id);
-      if (error) throw error;
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase update failed:', error, { id, payload });
+        throw error;
+      }
+
+      if (data) {
+        this.products = this.products.map(p => String(p.id) === String(id) ? fromSupabase(data as Record<string, unknown>) : p);
+      }
     }
     const i = this.products.findIndex(p => String(p.id) === String(product.id));
     if (i !== -1) {
