@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalComponent } from '../login-modal/login-modal.component';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-navbar',
@@ -18,20 +19,21 @@ import { LoginModalComponent } from '../login-modal/login-modal.component';
           </div>
         </div>
 
-        <div *ngIf="authService.isLogged" class="user-info">
-          <span class="user-name">👋 {{ firstName }}</span>
-          <button class="logout-btn" (click)="logout()">Sair</button>
+        <div class="nav-actions">
+          <div *ngIf="authService.isLogged" class="user-info">
+            <span class="user-name">👋 {{ firstName }}</span>
+            <button class="logout-btn" (click)="logout()">Sair</button>
+          </div>
+          <button *ngIf="!authService.isLogged" class="login-btn-nav" (click)="showLogin = true">
+            🔑 Entrar
+          </button>
+          <button *ngIf="showCartBtn" class="cart-btn" (click)="openCart.emit()">
+            🛒 <span>Sacola</span>
+            <span class="cart-count" *ngIf="cartService.getTotalItems() > 0">{{ cartService.getTotalItems() }}</span>
+          </button>
         </div>
       </nav>
     </header>
-
-    <button
-      *ngIf="!authService.isLogged"
-      class="login-float"
-      (click)="showLogin = true"
-    >
-      🔑 Entrar
-    </button>
 
     <app-login-modal
       *ngIf="showLogin"
@@ -73,54 +75,48 @@ import { LoginModalComponent } from '../login-modal/login-modal.component';
     .plus { color: #CA5417; }
     .slogan { font-size: 11px; color: rgba(252,250,229,0.5); letter-spacing: 0.07em; }
 
+    .nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+
     .user-info { display: flex; align-items: center; gap: 0.75rem; }
     .user-name {
-      font-size: 13px;
-      color: #FCFAE5;
-      font-weight: 500;
-      max-width: 160px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 13px; color: #FCFAE5; font-weight: 500;
+      max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .logout-btn {
-      background: none;
-      border: 1px solid rgba(252,250,229,0.3);
-      color: rgba(252,250,229,0.7);
-      border-radius: 6px;
-      padding: 4px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
+      background: none; border: 1px solid rgba(252,250,229,0.3);
+      color: rgba(252,250,229,0.7); border-radius: 6px;
+      padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s;
     }
     .logout-btn:hover { border-color: #FCFAE5; color: #FCFAE5; }
 
-    .login-float {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 999;
-      background: #395531;
-      color: #FCFAE5;
-      border: none;
-      border-radius: 2rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(57,85,49,0.35);
-      transition: transform 0.15s, box-shadow 0.15s;
+    .login-btn-nav {
+      background: rgba(252,250,229,0.12); border: 1px solid rgba(252,250,229,0.25);
+      color: #FCFAE5; border-radius: 6px; padding: 5px 14px;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
     }
-    .login-float:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(57,85,49,0.45);
+    .login-btn-nav:hover { background: rgba(252,250,229,0.2); }
+
+    .cart-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(252,250,229,0.12); border: 1px solid rgba(252,250,229,0.25);
+      color: #FCFAE5; border-radius: 6px; padding: 5px 14px;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+      position: relative;
+    }
+    .cart-btn:hover { background: rgba(252,250,229,0.2); }
+    .cart-count {
+      background: #CA5417; color: #fff; border-radius: 50%;
+      width: 18px; height: 18px; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
     }
   `]
 })
 export class NavbarComponent {
+  @Input() showCartBtn = false;
+  @Output() openCart = new EventEmitter<void>();
   showLogin = false;
 
-  constructor(public authService: AuthService) {}
+  constructor(public authService: AuthService, public cartService: CartService) {}
 
   onLoginSuccess(): void { this.showLogin = false; }
   logout(): void { this.authService.logout().catch(console.error); }

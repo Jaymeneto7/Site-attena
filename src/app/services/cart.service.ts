@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 export interface CartItem {
   id: number;
@@ -17,6 +17,9 @@ export interface CartItem {
 export class CartService {
   private items: CartItem[] = [];
   private itemsSubject = new BehaviorSubject<CartItem[]>([]);
+  readonly openCart$ = new Subject<void>();
+
+  openCart(): void { this.openCart$.next(); }
 
   public items$ = this.itemsSubject.asObservable();
 

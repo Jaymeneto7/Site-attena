@@ -2,6 +2,7 @@
     import { CommonModule } from '@angular/common';
     import { Product } from '../../models/product.model';
     import { ProductService } from '../../services/product.service';
+    import { CartService } from '../../services/cart.service';
     import { ProductCardComponent } from '../product-card/product-card.component';
     import { NavbarComponent } from '../navbar/navbar.component';
     import { HeroComponent } from '../hero/hero.component';
@@ -15,7 +16,7 @@
       standalone: true,
       imports: [CommonModule, ProductCardComponent, NavbarComponent, HeroComponent, FooterComponent],
       template: `
-        <app-navbar />
+        <app-navbar [showCartBtn]="true" (openCart)="cartService.openCart()" />
         <app-hero />
 
         <div class="catalog-layout">
@@ -185,7 +186,7 @@
         // { key: 'masculino', label: 'Masculino' },
       ];
 
-      constructor(private productService: ProductService) {}
+      constructor(private productService: ProductService, public cartService: CartService) {}
 
     ngOnInit() {
       // Carrega imediatamente se já tiver dados
