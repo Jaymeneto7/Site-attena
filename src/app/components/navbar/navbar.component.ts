@@ -123,7 +123,7 @@ export class NavbarComponent {
   constructor(public authService: AuthService) {}
 
   onLoginSuccess(): void { this.showLogin = false; }
-  logout(): void { this.authService.logout(); }
+  logout(): void { this.authService.logout().catch(console.error); }
 
   get firstName(): string {
     const name = this.authService.currentUser?.name ?? '';

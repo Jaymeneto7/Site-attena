@@ -69,7 +69,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
   if (!this.authService.isLogged || !this.authService.isAdmin) {
     if (this.authService.isLogged && !this.authService.isAdmin) {
-      this.authService.logout();
+      this.authService.logout().catch(console.error);
     }
     this.showLoginModal = true;
   } else {
@@ -123,7 +123,7 @@ ngOnDestroy(): void {
     if (this.authService.isAdmin) {
       this.loadProducts();
     } else {
-      this.authService.logout();
+      this.authService.logout().catch(console.error);
       this.showLoginModal = true;
     }
   }
@@ -132,8 +132,8 @@ ngOnDestroy(): void {
     this.router.navigate(['/']);
   }
 
-  logout(): void {
-    this.authService.logout();
+  async logout(): Promise<void> {
+    await this.authService.logout();
     this.router.navigate(['/']);
   }
 

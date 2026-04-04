@@ -29,15 +29,15 @@ export class LoginModalComponent {
     this.errorMessage = '';
   }
 
-  login(): void {
+  async login(): Promise<void> {
     const { email, password } = this.loginData;
     if (!email || !password) { this.errorMessage = 'Preencha todos os campos.'; return; }
 
-    // tenta admin primeiro
-    if (this.authService.loginAdmin(email, password)) {
-      this.loginSuccess.emit(); return;
-    }
-    // tenta cliente
+    // tenta admin via Supabase Auth
+    const isAdmin = await this.authService.loginAdmin(email, password);
+    if (isAdmin) { this.loginSuccess.emit(); return; }
+
+    // tenta cliente local
     if (this.authService.loginCliente(email, password)) {
       this.loginSuccess.emit(); return;
     }
