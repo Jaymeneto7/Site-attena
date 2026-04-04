@@ -45,7 +45,7 @@
           (click)="activeCategory = 'todos'"
         >
           Todos
-          <span class="sidebar-count">{{ products.length }}</span>
+          <span class="sidebar-count">{{ products.length - hiddenCount }}</span>
         </button>
         <button
           *ngFor="let cat of categories"
@@ -55,6 +55,14 @@
         >
           {{ cat.label }}
           <span class="sidebar-count">{{ productsByCategory(cat.key).length }}</span>
+        </button>
+        <button
+          class="sidebar-item sidebar-item-hidden"
+          [class.active]="activeCategory === 'ocultos'"
+          (click)="activeCategory = 'ocultos'"
+        >
+          Ocultos
+          <span class="sidebar-count" [class.count-hidden]="hiddenCount > 0">{{ hiddenCount }}</span>
         </button>
       </nav>
 
@@ -72,10 +80,11 @@
 
       <div class="products-grid">
         <div class="product-card" *ngFor="let product of filteredProducts">
-          <div class="product-thumb">
+          <div class="product-thumb" [class.thumb-hidden]="product.hidden">
             <img *ngIf="product.image" [src]="product.image" [alt]="product.name" />
             <div *ngIf="!product.image" class="thumb-placeholder">{{ product.emoji }}</div>
             <span *ngIf="product.badge" class="product-badge badge-{{ product.badge }}">{{ product.badge }}</span>
+            <span *ngIf="product.hidden" class="hidden-badge">Oculto</span>
           </div>
           <div class="product-info">
             <h3>{{ product.name }}</h3>
@@ -91,6 +100,9 @@
             </p>
             <div class="product-actions">
               <button type="button" class="btn-edit" (click)="openEditForm(product)">Editar</button>
+              <button type="button" class="btn-toggle-hidden" [class.btn-show]="product.hidden" (click)="toggleHidden(product.id)">
+                {{ product.hidden ? 'Exibir' : 'Ocultar' }}
+              </button>
               <button type="button" class="btn-del" (click)="deleteProduct(product.id)">Excluir</button>
             </div>
           </div>
@@ -225,5 +237,10 @@
     </div>
   </div>
 
+  <!-- Toast fixo (fora do formulário) -->
+  <div class="fixed-toast" *ngIf="showSuccessToast && !showProductForm">
+    <span>✅</span>
+    <span>{{ successToastMessage }}</span>
+  </div>
 
 </div>

@@ -189,12 +189,14 @@
 
     ngOnInit() {
       // Carrega imediatamente se já tiver dados
-      this.allProducts = this.productService.getProducts();
+      this.allProducts = this.productService.getProducts().filter(p => !p.hidden);
       this.filteredProducts = this.allProducts;
 
       // Escuta quando o Supabase terminar de carregar
       this.productService.productsLoaded.subscribe(products => {
-        this.allProducts = products.map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
+        this.allProducts = products
+          .filter(p => !p.hidden)
+          .map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
         this.filteredProducts = this.activeFilter === 'todos'
           ? this.allProducts
           : this.allProducts.filter(p => p.category === this.activeFilter);

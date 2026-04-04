@@ -161,6 +161,7 @@ function fromSupabase(row: Record<string, unknown>): Product {
     colors: row['colors'] as string[] | undefined,
     sizes: row['sizes'] as ProductSize[] ?? [],
     whatsappMessage: row['whatsapp_message'] as string | undefined,
+    hidden: row['hidden'] as boolean | undefined,
   });
 }
 
@@ -180,6 +181,7 @@ function toSupabase(p: Omit<Product, 'id'>): Record<string, unknown> {
     colors: p.colors ?? null,
     sizes: p.sizes ?? [],
     whatsapp_message: p.whatsappMessage ?? null,
+    hidden: p.hidden ?? false,
   };
 }
 
@@ -329,6 +331,21 @@ export class ProductService {
       if (error) throw error;
     }
     this.products = this.products.filter(p => String(p.id) !== String(id));
+    if (!this.useSupabase) this.save();
+  }
+
+  async toggleHidden(id: string | number): Promise<void> {
+    const product = this.products.find(p => String(p.id) === String(id));
+    if (!product) return;
+    const newHidden = !product.hidden;
+    if (this.useSupabase) {
+      const { error } = await this.supabaseService.client
+        .from('products')
+        .update({ hidden: newHidden })
+        .eq('id', id);
+      if (error) throw error;
+    }
+    product.hidden = newHidden;
     if (!this.useSupabase) this.save();
   }
 

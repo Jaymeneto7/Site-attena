@@ -20,4 +20,6 @@ export interface Product {
   colors?: string[];
   /** URL, caminho em /assets ou data:image (upload admin) */
   image?: string;
+  /** Oculto no catálogo público */
+  hidden?: boolean;
 }

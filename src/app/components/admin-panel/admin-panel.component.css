@@ -153,6 +153,11 @@
 .sidebar-item.active { background: #395531; color: #FCFAE5; font-weight: 600; }
 .sidebar-item.active .sidebar-count { background: rgba(252,250,229,0.25); color: #FCFAE5; }
 
+.sidebar-item-hidden { margin-top: 8px; border-top: 1px solid #e5e1d6; padding-top: 10px !important; color: #888; }
+.sidebar-item-hidden:hover { color: #555; }
+.sidebar-item-hidden.active { background: #555; color: #fff; }
+.count-hidden { background: #e8e0d0 !important; color: #666 !important; }
+
 .sidebar-count {
   background: #f0ede4;
   color: #888;
@@ -253,6 +258,18 @@
 .btn-edit:hover { opacity: 0.88; }
 .btn-del { background: #fee2e2 !important; color: #b91c1c !important; }
 .btn-del:hover { opacity: 0.88; }
+.btn-toggle-hidden { background: #f0ede0 !important; color: #555 !important; }
+.btn-toggle-hidden.btn-show { background: #e8f0e8 !important; color: #395531 !important; }
+.btn-toggle-hidden:hover { opacity: 0.88; }
+
+.thumb-hidden { opacity: 0.45; filter: grayscale(60%); }
+.hidden-badge {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.6); color: #fff;
+  font-size: 10px; font-weight: 600; padding: 2px 10px;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;
+  white-space: nowrap;
+}
 
 /* ── Empty state ── */
 .empty-state { text-align: center; padding: 3rem; color: #aaa; }
@@ -407,4 +424,25 @@
 @keyframes successPop {
   0%   { opacity: 0; transform: scale(0.8); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Toast fixo (fora do formulário) ── */
+.fixed-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  padding: 24px 36px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  z-index: 99999;
+  pointer-events: none;
+  animation: successPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

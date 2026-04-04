@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -62,7 +62,8 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   constructor(
     private productService: ProductService,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -90,17 +91,23 @@ ngOnDestroy(): void {
   }
 
   get filteredProducts(): Product[] {
-    if (this.activeCategory === 'todos') return this.products;
-    return this.products.filter(p => p.category === this.activeCategory);
+    if (this.activeCategory === 'ocultos') return this.products.filter(p => p.hidden);
+    if (this.activeCategory === 'todos') return this.products.filter(p => !p.hidden);
+    return this.products.filter(p => !p.hidden && p.category === this.activeCategory);
   }
 
   get activeCategoryLabel(): string {
     if (this.activeCategory === 'todos') return 'Todos os produtos';
+    if (this.activeCategory === 'ocultos') return 'Produtos ocultos';
     return this.categories.find(c => c.key === this.activeCategory)?.label ?? this.activeCategory;
   }
 
+  get hiddenCount(): number {
+    return this.products.filter(p => p.hidden).length;
+  }
+
   productsByCategory(key: CategoryKey): Product[] {
-    return this.products.filter(p => p.category === key);
+    return this.products.filter(p => !p.hidden && p.category === key);
   }
 
   loadProducts(): void {
@@ -255,11 +262,11 @@ ngOnDestroy(): void {
     if (this.editingProduct) {
       await this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
       this.loadProducts();
-      this.showToast('Produto atualizado com sucesso!');
+      this.showToast('Produto atualizado com sucesso!', true);
     } else {
       await this.productService.createProduct(payload as Omit<Product, 'id'>);
       this.loadProducts();
-      this.showToast('Produto cadastrado com sucesso!');
+      this.showToast('Produto cadastrado com sucesso!', true);
     }
   } catch (err: unknown) {
     const supaErr = err as { message?: string; code?: string };
@@ -268,13 +275,29 @@ ngOnDestroy(): void {
   }
 }
 
-private showToast(message: string): void {
+private showToast(message: string, closeFormAfter = false): void {
   this.successToastMessage = message;
   this.showSuccessToast = true;
+  this.cdr.detectChanges();
   setTimeout(() => {
     this.showSuccessToast = false;
-    this.closeForm();
+    if (closeFormAfter) this.closeForm();
+    this.cdr.detectChanges();
   }, 2000);
+}
+
+async toggleHidden(id: string | number): Promise<void> {
+  const product = this.products.find(p => String(p.id) === String(id));
+  try {
+    await this.productService.toggleHidden(id);
+    this.loadProducts();
+    const isNowHidden = !product?.hidden;
+    this.showToast(isNowHidden ? 'Produto removido do catálogo' : 'Produto exibido no catálogo');
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    alert(`Erro ao ocultar produto: ${e?.message ?? String(err)}`);
+    console.error(err);
+  }
 }
 
 async deleteProduct(id: string | number): Promise<void> {
