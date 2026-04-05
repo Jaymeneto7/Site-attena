@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 export interface CartItem {
-  id: number;
+  id: string | number;
   name: string;
   emoji: string;
   category: string;
@@ -17,6 +17,9 @@ export interface CartItem {
 export class CartService {
   private items: CartItem[] = [];
   private itemsSubject = new BehaviorSubject<CartItem[]>([]);
+  readonly openCart$ = new Subject<void>();
+
+  openCart(): void { this.openCart$.next(); }
 
   public items$ = this.itemsSubject.asObservable();
 
@@ -25,64 +28,49 @@ export class CartService {
   }
 
   addItem(item: CartItem): void {
-    const itemId = Number(item.id);
-    const normalizedItemId = Number.isNaN(itemId) ? 0 : itemId;
+    const itemId = String(item.id);
     const normalizedSize = item.size ?? null;
 
-    console.log('📦 ADD ITEM:', { id: normalizedItemId, name: item.name, size: normalizedSize });
-
     const existingItem = this.items.find(
-      (i) => {
-        const iSize = i.size ?? null;
-        const matches = i.id === normalizedItemId && iSize === normalizedSize;
-        if (matches) {
-          console.log('  ✏️ Encontrado item duplicado, vai incrementar quantidade');
-        }
-        return matches;
-      }
+      (i) => String(i.id) === itemId && (i.size ?? null) === normalizedSize
     );
 
     if (existingItem) {
       existingItem.quantity = (existingItem.quantity ?? 1) + 1;
-      console.log('  Quantidade agora:', existingItem.quantity);
     } else {
-      console.log('  ✨ Novo item adicionado');
-      const newItem: CartItem = {
+      this.items.push({
         ...item,
-        id: normalizedItemId,
+        id: itemId,
         size: normalizedSize ?? undefined,
         quantity: item.quantity ?? 1,
         price: Number(item.price) || 0,
-      };
-      this.items.push(newItem);
+      });
     }
-
-    console.log('  Carrinho agora tem:', this.items.map(i => `${i.name}(${i.size || 'sem tamanho'}) x${i.quantity}`).join(', '));
 
     this.saveToLocalStorage();
     this.itemsSubject.next([...this.items]);
   }
 
-  removeItem(id: number, size?: string): void {
+  removeItem(id: string | number, size?: string): void {
+    const itemId = String(id);
     const normalizedSize = size ?? null;
     const initialLength = this.items.length;
 
     this.items = this.items.filter(
-      (item) => !(item.id === id && (item.size ?? null) === normalizedSize)
+      (item) => !(String(item.id) === itemId && (item.size ?? null) === normalizedSize)
     );
 
-    // Força atualização do observable mesmo se não houve mudança
     this.itemsSubject.next([...this.items]);
-
     if (this.items.length !== initialLength) {
       this.saveToLocalStorage();
     }
   }
 
-  updateQuantity(id: number, quantity: number, size?: string): void {
+  updateQuantity(id: string | number, quantity: number, size?: string): void {
+    const itemId = String(id);
     const normalizedSize = size ?? null;
     const item = this.items.find(
-      (i) => i.id === id && (i.size ?? null) === normalizedSize
+      (i) => String(i.id) === itemId && (i.size ?? null) === normalizedSize
     );
     if (item) {
       item.quantity = quantity;
@@ -95,26 +83,18 @@ export class CartService {
     }
   }
 
-  isInCart(id: number, size?: string): boolean {
-    const normalizedId = Number(id);
-    if (Number.isNaN(normalizedId)) {
-      return false;
-    }
+  isInCart(id: string | number, size?: string): boolean {
+    const itemId = String(id);
     const normalizedSize = size ?? null;
     return this.items.some(
-      (item) => Number(item.id) === normalizedId && (item.size ?? null) === normalizedSize
+      (item) => String(item.id) === itemId && (item.size ?? null) === normalizedSize
     );
   }
 
-  getItems(): CartItem[] {
-    return [...this.items];
-  }
+  getItems(): CartItem[] { return [...this.items]; }
 
   getTotalPrice(): number {
-    return this.items.reduce(
-      (total, item) => total + item.price * (item.quantity ?? 1),
-      0
-    );
+    return this.items.reduce((total, item) => total + item.price * (item.quantity ?? 1), 0);
   }
 
   getTotalItems(): number {
@@ -133,31 +113,21 @@ export class CartService {
 
   private loadFromLocalStorage(): void {
     const saved = localStorage.getItem('cart');
-    if (saved) {
-      try {
-        const parsed: unknown = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          this.items = parsed.map((item) => {
-            const id = Number((item as any).id);
-            const size = (item as any).size;
-            const quantity = Number((item as any).quantity) || 1;
-            const price = Number((item as any).price) || 0;
-            return {
-              ...item,
-              id: Number.isNaN(id) ? 0 : id,
-              size: size == null ? undefined : String(size),
-              quantity,
-              price,
-            } as CartItem;
-          });
-        } else {
-          this.items = [];
-        }
+    if (!saved) return;
+    try {
+      const parsed: unknown = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        this.items = parsed.map((item) => ({
+          ...item,
+          id: String((item as CartItem).id ?? ''),
+          size: (item as CartItem).size ?? undefined,
+          quantity: Number((item as CartItem).quantity) || 1,
+          price: Number((item as CartItem).price) || 0,
+        } as CartItem));
         this.itemsSubject.next([...this.items]);
-      } catch (e) {
-        console.error('Erro ao carregar carrinho:', e);
-        this.items = [];
       }
+    } catch {
+      this.items = [];
     }
   }
 }

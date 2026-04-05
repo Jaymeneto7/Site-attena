@@ -10,7 +10,7 @@ template: `
     <section class="hero">
       <div class="hero-content">
         <span class="tag">Coleção 2024</span>
-        <h1>Descubra a força<br><em>e elegância</em><br>inspiradas na<br>Grécia antiga.</h1>
+        <h1>Força é sentir bem<br><em>na própria pele</em></h1>
         <p>Roupas fitness que acompanham cada movimento. Do treino à rua, sem abrir mão da estética.</p>
       </div>
       <div class="hero-stats">

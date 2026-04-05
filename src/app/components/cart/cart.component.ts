@@ -51,14 +51,14 @@ export class CartComponent {
     this.cartService.addItem(product);
   }
 
-  changeQty(id: number, delta: number): void {
-    const item = this.cartItems.find(i => i.id === id);
+  changeQty(id: string | number, delta: number): void {
+    const item = this.cartItems.find(i => String(i.id) === String(id));
     if (item) {
       this.cartService.updateQuantity(id, (item.quantity ?? 1) + delta);
     }
   }
 
-  removeItem(id: number): void {
+  removeItem(id: string | number): void {
     this.cartService.removeItem(id);
   }
 
@@ -79,6 +79,6 @@ export class CartComponent {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  trackById(_: number, item: CartItem): number { return item.id; }
-  trackByProductId(_: number, product: Product): number { return product.id; }
+  trackById(_: number, item: CartItem): string | number { return item.id; }
+  trackByProductId(_: number, product: Product): string | number { return product.id; }
 }

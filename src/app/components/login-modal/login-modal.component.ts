@@ -18,6 +18,7 @@ export class LoginModalComponent {
 
   tab: Tab = 'login';
   errorMessage = '';
+  loading = false;
 
   loginData = { email: '', password: '' };
   cadastroData = { name: '', email: '', password: '', confirm: '' };
@@ -29,35 +30,36 @@ export class LoginModalComponent {
     this.errorMessage = '';
   }
 
-  login(): void {
+  async login(): Promise<void> {
     const { email, password } = this.loginData;
     if (!email || !password) { this.errorMessage = 'Preencha todos os campos.'; return; }
 
-    // tenta admin primeiro
-    if (this.authService.loginAdmin(email, password)) {
-      this.loginSuccess.emit(); return;
-    }
-    // tenta cliente
-    if (this.authService.loginCliente(email, password)) {
-      this.loginSuccess.emit(); return;
-    }
-    this.errorMessage = 'E-mail ou senha incorretos.';
+    this.loading = true;
+    this.errorMessage = '';
+    const result = await this.authService.login(email, password);
+    this.loading = false;
+
+    if (result.ok) { this.loginSuccess.emit(); }
+    else { this.errorMessage = result.error ?? 'E-mail ou senha incorretos.'; }
   }
 
-  cadastrar(): void {
+  async cadastrar(): Promise<void> {
     const { name, email, password, confirm } = this.cadastroData;
     if (!name || !email || !password) { this.errorMessage = 'Preencha todos os campos.'; return; }
     if (password !== confirm) { this.errorMessage = 'As senhas não coincidem.'; return; }
     if (password.length < 6) { this.errorMessage = 'Senha deve ter ao menos 6 caracteres.'; return; }
 
-    const ok = this.authService.registerCliente(name, email, password);
-    if (ok) { this.loginSuccess.emit(); }
-    else { this.errorMessage = 'Este e-mail já está cadastrado.'; }
+    this.loading = true;
+    this.errorMessage = '';
+    const result = await this.authService.registerCliente(name, email, password);
+    this.loading = false;
+
+    if (result.ok) { this.loginSuccess.emit(); }
+    else { this.errorMessage = result.error ?? 'Erro ao criar conta.'; }
   }
 
-  loginGoogle(): void {
-    this.authService.loginGoogle();
-    this.loginSuccess.emit();
+  async loginGoogle(): Promise<void> {
+    await this.authService.loginWithGoogle();
   }
 
   onClose(): void { this.closeModal.emit(); }

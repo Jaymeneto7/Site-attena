@@ -2,6 +2,7 @@
     import { CommonModule } from '@angular/common';
     import { Product } from '../../models/product.model';
     import { ProductService } from '../../services/product.service';
+    import { CartService } from '../../services/cart.service';
     import { ProductCardComponent } from '../product-card/product-card.component';
     import { NavbarComponent } from '../navbar/navbar.component';
     import { HeroComponent } from '../hero/hero.component';
@@ -15,7 +16,7 @@
       standalone: true,
       imports: [CommonModule, ProductCardComponent, NavbarComponent, HeroComponent, FooterComponent],
       template: `
-        <app-navbar />
+        <app-navbar [showCartBtn]="true" (openCart)="cartService.openCart()" />
         <app-hero />
 
         <div class="catalog-layout">
@@ -179,22 +180,24 @@
       filters: { key: FilterKey; label: string }[] = [
         { key: 'todos',     label: 'Todos' },
         { key: 'tops',      label: 'Tops' },
-        { key: 'leggings',  label: 'Leggings' },
+        { key: 'leggings',  label: 'Calças' },
         { key: 'shorts',    label: 'Shorts' },
         { key: 'conjuntos', label: 'Conjuntos' },
         // { key: 'masculino', label: 'Masculino' },
       ];
 
-      constructor(private productService: ProductService) {}
+      constructor(private productService: ProductService, public cartService: CartService) {}
 
     ngOnInit() {
       // Carrega imediatamente se já tiver dados
-      this.allProducts = this.productService.getProducts();
+      this.allProducts = this.productService.getProducts().filter(p => !p.hidden);
       this.filteredProducts = this.allProducts;
 
       // Escuta quando o Supabase terminar de carregar
       this.productService.productsLoaded.subscribe(products => {
-        this.allProducts = products.map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
+        this.allProducts = products
+          .filter(p => !p.hidden)
+          .map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
         this.filteredProducts = this.activeFilter === 'todos'
           ? this.allProducts
           : this.allProducts.filter(p => p.category === this.activeFilter);
