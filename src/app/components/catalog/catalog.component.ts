@@ -180,7 +180,7 @@
       filters: { key: FilterKey; label: string }[] = [
         { key: 'todos',     label: 'Todos' },
         { key: 'tops',      label: 'Tops' },
-        { key: 'leggings',  label: 'Leggings' },
+        { key: 'leggings',  label: 'Calças' },
         { key: 'shorts',    label: 'Shorts' },
         { key: 'conjuntos', label: 'Conjuntos' },
         // { key: 'masculino', label: 'Masculino' },

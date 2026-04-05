@@ -31,8 +31,8 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   successToastMessage = '';
 
   readonly categories: { key: CategoryKey; label: string }[] = [
-    { key: 'tops', label: 'Tops / Top feminino' },
-    { key: 'leggings', label: 'Leggings' },
+    { key: 'tops', label: 'Top' },
+    { key: 'leggings', label: 'Calça' },
     { key: 'shorts', label: 'Shorts' },
     { key: 'conjuntos', label: 'Conjuntos' },
     { key: 'masculino', label: 'Masculino' },

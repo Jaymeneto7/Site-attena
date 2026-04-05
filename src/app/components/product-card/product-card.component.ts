@@ -1,7 +1,9 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
+import { WishlistService } from '../../services/wishlist.service';
 
 @Component({
   selector: 'app-product-card',
@@ -9,13 +11,16 @@ import { CartService } from '../../services/cart.service';
   imports: [CommonModule],
   template: `
     <div class="card-wrapper">
-      <div class="card">
+      <div class="card" (click)="goToDetail()">
         <div class="card-img" [style.background]="product.bgColor || '#f4f4f0'">
           <span *ngIf="product.badge" class="badge" [ngClass]="'badge-' + product.badge">
             {{ badgeLabel }}
           </span>
           <img *ngIf="product.image" class="card-photo" [src]="product.image" [alt]="product.name" />
           <span *ngIf="!product.image" class="emoji">{{ product.emoji }}</span>
+          <button class="wish-btn" [class.wished]="wishlistService.has(product.id)" (click)="toggleWish($event)" title="Lista de desejos">
+            {{ wishlistService.has(product.id) ? '♥' : '♡' }}
+          </button>
         </div>
         <div class="card-body">
           <div class="card-name">{{ product.name }}</div>
@@ -26,7 +31,7 @@ import { CartService } from '../../services/cart.service';
               class="size"
               [class.selected]="selectedSize === size.label"
               [class.available]="size.stock > 0"
-              (click)="size.stock > 0 ? selectSize(size.label) : null"
+              (click)="$event.stopPropagation(); size.stock > 0 ? selectSize(size.label) : null"
             >{{ size.label }}</span>
           </div>
 
@@ -40,7 +45,7 @@ import { CartService } from '../../services/cart.service';
               <span class="price">R$ {{ product.price }}</span>
               <span *ngIf="product.originalPrice" class="price-old">R$ {{ product.originalPrice }}</span>
             </div>
-            <button class="add-btn" [class.added]="isInCart" (click)="addToCart()">
+            <button class="add-btn" [class.added]="isInCart" (click)="$event.stopPropagation(); addToCart()">
               <span *ngIf="!isInCart">🛒 Adicionar</span>
               <span *ngIf="isInCart">✓ Adicionado</span>
             </button>
@@ -57,7 +62,7 @@ import { CartService } from '../../services/cart.service';
   `,
   styles: [`
     .card-wrapper { position: relative; }
-    .card { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s, transform 0.15s; }
+    .card { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s, transform 0.15s; cursor: pointer; }
     .card:hover { border-color: var(--color-muted); transform: translateY(-2px); }
     .card-img { height: 160px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
     .card-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -66,6 +71,15 @@ import { CartService } from '../../services/cart.service';
     .badge-novo { background: var(--color-muted); color: var(--color-on-primary); }
     .badge-hot  { background: var(--color-accent-warm); color: var(--color-on-primary); }
     .badge-sale { background: var(--color-danger); color: var(--color-on-primary); }
+    .wish-btn {
+      position: absolute; top: 8px; right: 8px; z-index: 2;
+      background: rgba(255,255,255,0.85); border: none; border-radius: 50%;
+      width: 30px; height: 30px; font-size: 16px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: #bbb; transition: color 0.15s, background 0.15s; backdrop-filter: blur(4px);
+    }
+    .wish-btn:hover { color: #CA5417; background: rgba(255,255,255,0.95); }
+    .wish-btn.wished { color: #CA5417; }
     .card-body { padding: 12px 14px 14px; }
     .card-name { font-size: 14px; font-weight: 500; color: var(--color-text); margin-bottom: 2px; }
     .card-cat { font-size: 11px; color: #aaa; margin-bottom: 10px; }
@@ -135,7 +149,11 @@ export class ProductCardComponent implements OnChanges {
   showSizeWarning = false;
   showSuccessMessage = false;
 
-  constructor(private cartService: CartService) {}
+  constructor(private cartService: CartService, public wishlistService: WishlistService, private router: Router) {}
+
+  goToDetail(): void {
+    this.router.navigate(['/produto', this.product.id]);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['product']) {
@@ -160,19 +178,16 @@ export class ProductCardComponent implements OnChanges {
   }
 
   get isInCart(): boolean {
-    const productId = Number(this.product.id);
-    if (Number.isNaN(productId)) {
-      return false;
-    }
-
     if (this.hasSizeObjects) {
-      if (!this.selectedSize) {
-        return false;
-      }
-      return this.cartService.isInCart(productId, this.selectedSize);
+      if (!this.selectedSize) return false;
+      return this.cartService.isInCart(this.product.id, this.selectedSize);
     }
+    return this.cartService.isInCart(this.product.id, undefined);
+  }
 
-    return this.cartService.isInCart(productId, undefined);
+  toggleWish(event: Event): void {
+    event.stopPropagation();
+    this.wishlistService.toggle(this.product.id);
   }
 
   selectSize(label: string): void {
@@ -186,19 +201,13 @@ export class ProductCardComponent implements OnChanges {
       return;
     }
 
-    const id = Number(this.product.id);
+    // Não adiciona se já estiver no carrinho
+    if (this.isInCart) return;
+
     const sizeToAdd = this.hasSizeObjects ? this.selectedSize || undefined : undefined;
 
-    console.log('🛒 ADD:', { 
-      id, 
-      name: this.product.name, 
-      size: sizeToAdd, 
-      selectedSize: this.selectedSize,
-      hasSizeObjects: this.hasSizeObjects 
-    });
-
     this.cartService.addItem({
-      id: id,
+      id: this.product.id,
       name: this.product.name,
       emoji: this.product.emoji ?? '🛍️',
       category: this.product.category ?? '',
@@ -206,9 +215,6 @@ export class ProductCardComponent implements OnChanges {
       size: sizeToAdd,
     });
 
-    // IMPORTANTE: Reset do tamanho selecionado após adicionar
-    console.log('🔄 Resetando selectedSize de', this.selectedSize, 'para null');
-    this.selectedSize = null;
     this.showSizeWarning = false;
     
     // Mostrar mensagem de sucesso

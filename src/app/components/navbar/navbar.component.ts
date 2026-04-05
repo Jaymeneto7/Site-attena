@@ -1,27 +1,33 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { WishlistService } from '../../services/wishlist.service';
 import { LoginModalComponent } from '../login-modal/login-modal.component';
 import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, LoginModalComponent],
+  imports: [CommonModule, RouterLink, LoginModalComponent],
   template: `
     <header>
       <nav>
-        <div class="brand">
+        <a routerLink="/" class="brand">
           <div class="logo-icon">A</div>
           <div>
             <div class="logo">ATTENA<span class="plus">+</span></div>
             <div class="slogan">Movimento • Força • Estilo</div>
           </div>
-        </div>
+        </a>
 
         <div class="nav-actions">
           <div *ngIf="authService.isLogged" class="user-info">
             <span class="user-name">👋 {{ firstName }}</span>
+            <a routerLink="/minha-conta" class="account-btn">
+              Minha conta
+              <span *ngIf="wishlistService.count() > 0" class="wish-count">{{ wishlistService.count() }}</span>
+            </a>
             <button class="logout-btn" (click)="logout()">Sair</button>
           </div>
           <button *ngIf="!authService.isLogged" class="login-btn-nav" (click)="showLogin = true">
@@ -53,7 +59,7 @@ import { CartService } from '../../services/cart.service';
       justify-content: space-between;
     }
 
-    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
 
     .logo-icon {
       width: 36px; height: 36px;
@@ -81,6 +87,18 @@ import { CartService } from '../../services/cart.service';
     .user-name {
       font-size: 13px; color: #FCFAE5; font-weight: 500;
       max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .account-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(252,250,229,0.12); border: 1px solid rgba(252,250,229,0.25);
+      color: #FCFAE5; border-radius: 6px; padding: 5px 14px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .account-btn:hover { background: rgba(252,250,229,0.2); }
+    .wish-count {
+      background: #CA5417; color: #fff; border-radius: 20px;
+      padding: 1px 6px; font-size: 10px; font-weight: 700;
     }
     .logout-btn {
       background: none; border: 1px solid rgba(252,250,229,0.3);
@@ -116,7 +134,7 @@ export class NavbarComponent {
   @Output() openCart = new EventEmitter<void>();
   showLogin = false;
 
-  constructor(public authService: AuthService, public cartService: CartService) {}
+  constructor(public authService: AuthService, public cartService: CartService, public wishlistService: WishlistService) {}
 
   onLoginSuccess(): void { this.showLogin = false; }
   logout(): void { this.authService.logout().catch(console.error); }

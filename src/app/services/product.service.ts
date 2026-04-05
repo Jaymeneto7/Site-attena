@@ -11,7 +11,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 1,
     name: 'Top Sculpt',
     category: 'tops',
-    categoryLabel: 'Top feminino',
+    categoryLabel: 'Top',
     price: 129,
     badge: 'novo',
     sizes: [
@@ -28,7 +28,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 2,
     name: 'Legging Power',
     category: 'leggings',
-    categoryLabel: 'Legging feminina',
+    categoryLabel: 'Calça',
     price: 189,
     badge: 'hot',
     sizes: [
@@ -97,7 +97,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 6,
     name: 'Top Essential',
     category: 'tops',
-    categoryLabel: 'Top feminino',
+    categoryLabel: 'Top',
     price: 99,
     originalPrice: 124,
     badge: 'sale',
