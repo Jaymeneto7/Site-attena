@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { WishlistService } from '../../services/wishlist.service';
@@ -261,7 +261,8 @@ export class MinhaContaComponent implements OnInit, OnDestroy {
     public cartService: CartService,
     private orderService: OrderService,
     private productService: ProductService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -269,6 +270,12 @@ export class MinhaContaComponent implements OnInit, OnDestroy {
     if (user) {
       this.form.name = user.name;
       this.form.email = user.email;
+    }
+
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'desejos' || tabParam === 'pedidos' || tabParam === 'conta') {
+      this.tab = tabParam;
+      if (tabParam === 'pedidos') this.loadOrders();
     }
 
     this.productService.productsLoaded.subscribe(products => {

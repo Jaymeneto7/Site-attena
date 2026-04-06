@@ -24,10 +24,25 @@ import { CartService } from '../../services/cart.service';
         <div class="nav-actions">
           <div *ngIf="authService.isLogged" class="user-info">
             <span class="user-name">👋 {{ firstName }}</span>
-            <a routerLink="/minha-conta" class="account-btn">
-              Minha conta
-              <span *ngIf="wishlistService.count() > 0" class="wish-count">{{ wishlistService.count() }}</span>
-            </a>
+            <div class="account-menu">
+              <a routerLink="/minha-conta" class="account-btn">
+                Minha conta
+                <span *ngIf="wishlistService.count() > 0" class="wish-count">{{ wishlistService.count() }}</span>
+                <span class="chevron">▾</span>
+              </a>
+              <div class="dropdown">
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'conta'}" class="dropdown-item">
+                  👤 Dados pessoais
+                </a>
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'desejos'}" class="dropdown-item">
+                  ♡ Lista de desejos
+                  <span *ngIf="wishlistService.count() > 0" class="dropdown-badge">{{ wishlistService.count() }}</span>
+                </a>
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'pedidos'}" class="dropdown-item">
+                  📦 Meus pedidos
+                </a>
+              </div>
+            </div>
             <button class="logout-btn" (click)="logout()">Sair</button>
           </div>
           <button *ngIf="!authService.isLogged" class="login-btn-nav" (click)="showLogin = true">
@@ -88,6 +103,9 @@ import { CartService } from '../../services/cart.service';
       font-size: 13px; color: #FCFAE5; font-weight: 500;
       max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .account-menu { position: relative; }
+    .account-menu:hover .dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+
     .account-btn {
       display: flex; align-items: center; gap: 5px;
       background: rgba(252,250,229,0.12); border: 1px solid rgba(252,250,229,0.25);
@@ -96,9 +114,32 @@ import { CartService } from '../../services/cart.service';
       text-decoration: none; transition: background 0.15s;
     }
     .account-btn:hover { background: rgba(252,250,229,0.2); }
+    .chevron { font-size: 10px; opacity: 0.7; }
     .wish-count {
       background: #CA5417; color: #fff; border-radius: 20px;
       padding: 1px 6px; font-size: 10px; font-weight: 700;
+    }
+
+    .dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: #fff; border: 0.5px solid #e4e1d5; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      min-width: 200px; padding: 6px;
+      opacity: 0; visibility: hidden;
+      transform: translateY(-6px);
+      transition: opacity 0.18s, transform 0.18s, visibility 0.18s;
+      z-index: 200;
+    }
+    .dropdown-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px; border-radius: 7px;
+      font-size: 13px; color: #444; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s;
+    }
+    .dropdown-item:hover { background: #f4f2ea; color: #395531; }
+    .dropdown-badge {
+      background: #CA5417; color: #fff; border-radius: 20px;
+      padding: 1px 7px; font-size: 10px; font-weight: 700;
     }
     .logout-btn {
       background: none; border: 1px solid rgba(252,250,229,0.3);
