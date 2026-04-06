@@ -93,6 +93,13 @@ import { ProductService } from '../../services/product.service';
 
     .copy { font-size: 11px; color: var(--color-on-primary-40); }
 
+    @media (max-width: 640px) {
+      .cta { padding: 2rem 1rem; }
+      .cta-btns { flex-direction: column; align-items: center; }
+      .wpp-btn, .insta-btn { width: 100%; max-width: 280px; justify-content: center; }
+      .bottom { flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+    }
+
   `]
 })
 export class FooterComponent {

@@ -24,26 +24,30 @@ import { CartService } from '../../services/cart.service';
         <div class="nav-actions">
           <div *ngIf="authService.isLogged" class="user-info">
             <span class="user-name">👋 {{ firstName }}</span>
-            <div class="account-menu">
-              <a routerLink="/minha-conta" class="account-btn">
-                Minha conta
+            <div class="account-menu" [class.open]="dropdownOpen" (click)="dropdownOpen = !dropdownOpen" (mouseleave)="dropdownOpen = false">
+              <a class="account-btn" (click)="$event.preventDefault()">
+                <span class="account-label">Minha conta</span>
                 <span *ngIf="wishlistService.count() > 0" class="wish-count">{{ wishlistService.count() }}</span>
                 <span class="chevron">▾</span>
               </a>
               <div class="dropdown">
-                <a routerLink="/minha-conta" [queryParams]="{tab: 'conta'}" class="dropdown-item">
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'conta'}" class="dropdown-item" (click)="dropdownOpen = false">
                   👤 Dados pessoais
                 </a>
-                <a routerLink="/minha-conta" [queryParams]="{tab: 'desejos'}" class="dropdown-item">
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'desejos'}" class="dropdown-item" (click)="dropdownOpen = false">
                   ♡ Lista de desejos
                   <span *ngIf="wishlistService.count() > 0" class="dropdown-badge">{{ wishlistService.count() }}</span>
                 </a>
-                <a routerLink="/minha-conta" [queryParams]="{tab: 'pedidos'}" class="dropdown-item">
+                <a routerLink="/minha-conta" [queryParams]="{tab: 'pedidos'}" class="dropdown-item" (click)="dropdownOpen = false">
                   📦 Meus pedidos
                 </a>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item dropdown-logout" (click)="logout(); dropdownOpen = false">
+                  🚪 Sair
+                </button>
               </div>
             </div>
-            <button class="logout-btn" (click)="logout()">Sair</button>
+            <button class="logout-btn desktop-only" (click)="logout()">Sair</button>
           </div>
           <button *ngIf="!authService.isLogged" class="login-btn-nav" (click)="showLogin = true">
             🔑 Entrar
@@ -104,7 +108,8 @@ import { CartService } from '../../services/cart.service';
       max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .account-menu { position: relative; }
-    .account-menu:hover .dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+    .account-menu:hover .dropdown,
+    .account-menu.open .dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
 
     .account-btn {
       display: flex; align-items: center; gap: 5px;
@@ -141,6 +146,24 @@ import { CartService } from '../../services/cart.service';
       background: #CA5417; color: #fff; border-radius: 20px;
       padding: 1px 7px; font-size: 10px; font-weight: 700;
     }
+    .dropdown-divider { height: 0.5px; background: #e4e1d5; margin: 4px 6px; }
+    .dropdown-logout {
+      width: 100%; background: none; border: none; text-align: left; cursor: pointer;
+      color: #c0392b; font-size: 13px;
+    }
+    .dropdown-logout:hover { background: #fff0ee; color: #c0392b; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .user-name { display: none; }
+      .account-label { display: none; }
+      .account-btn { padding: 5px 10px; }
+      .desktop-only { display: none; }
+      .cart-btn span:first-of-type { display: none; }
+      .cart-btn { padding: 5px 10px; gap: 4px; }
+      .login-btn-nav span { display: none; }
+      .dropdown { right: 0; min-width: 180px; }
+    }
     .logout-btn {
       background: none; border: 1px solid rgba(252,250,229,0.3);
       color: rgba(252,250,229,0.7); border-radius: 6px;
@@ -174,6 +197,7 @@ export class NavbarComponent {
   @Input() showCartBtn = false;
   @Output() openCart = new EventEmitter<void>();
   showLogin = false;
+  dropdownOpen = false;
 
   constructor(public authService: AuthService, public cartService: CartService, public wishlistService: WishlistService) {}
 

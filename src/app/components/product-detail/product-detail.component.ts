@@ -194,6 +194,10 @@ import { FooterComponent } from '../footer/footer.component';
     @media (max-width: 700px) {
       .detail-layout { grid-template-columns: 1fr; gap: 1.5rem; }
       .product-name { font-size: 1.5rem; }
+      .page { padding: 1rem; }
+      .image-area { aspect-ratio: 4/3; }
+      .price { font-size: 1.4rem; }
+      .add-btn { font-size: 0.95rem; padding: 13px 20px; }
     }
   `]
 })

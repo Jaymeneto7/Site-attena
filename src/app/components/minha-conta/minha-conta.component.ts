@@ -239,6 +239,15 @@ type Tab = 'conta' | 'desejos' | 'pedidos';
     @media (max-width: 640px) {
       .wishlist-grid { grid-template-columns: repeat(2, 1fr); }
       .form-section { padding: 1rem; }
+      .page { padding: 1rem; }
+      .tabs { gap: 4px; }
+      .tab { padding: 8px 12px; font-size: 13px; }
+      .order-card { padding: 1rem; }
+    }
+
+    @media (max-width: 360px) {
+      .wishlist-grid { grid-template-columns: 1fr; }
+      .tabs { flex-direction: column; }
     }
   `]
 })

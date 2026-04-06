@@ -119,6 +119,14 @@ template: `
       color: var(--color-on-primary-55);
       letter-spacing: 0.04em;
     }
+
+    @media (max-width: 640px) {
+      .hero { padding: 2.5rem 1.25rem; min-height: auto; }
+      h1 { font-size: 26px; }
+      .hero-content { max-width: 100%; }
+      .stats { gap: 12px; margin-top: 1.5rem; }
+      .stat-val { font-size: 18px; }
+    }
   `]
 })
 export class HeroComponent {

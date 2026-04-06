@@ -116,6 +116,15 @@ import { WishlistService } from '../../services/wishlist.service';
     .add-btn { display: flex; align-items: center; gap: 5px; background: var(--color-primary); color: var(--color-on-primary); border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .add-btn.added { background: var(--color-muted); }
     .add-btn:hover { opacity: 0.9; }
+
+    @media (max-width: 400px) {
+      .card-img { height: 140px; }
+      .emoji { font-size: 48px; }
+      .card-body { padding: 10px 12px 12px; }
+      .card-name { font-size: 13px; }
+      .price { font-size: 14px; }
+      .add-btn { padding: 6px 10px; font-size: 11px; }
+    }
     .success-message { 
       position: absolute; 
       top: 50%; 
