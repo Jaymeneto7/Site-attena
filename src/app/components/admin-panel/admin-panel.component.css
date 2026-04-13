@@ -1,3 +1,5 @@
+.form-hint { font-size: 11px; color: #aaa; margin-top: 4px; display: block; }
+
 /* ── Layout geral ── */
 .admin-painel {
   min-height: 100vh;

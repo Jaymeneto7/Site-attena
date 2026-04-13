@@ -53,6 +53,20 @@ import { FooterComponent } from '../footer/footer.component';
             <span *ngIf="product.originalPrice" class="price-old">R$ {{ product.originalPrice | number:'1.2-2':'pt-BR' }}</span>
           </div>
 
+          <!-- Cores -->
+          <div *ngIf="product.colors?.length" class="colors-section">
+            <div class="sizes-label">Cor<span *ngIf="selectedColor" class="selected-color-name"> — {{ selectedColor }}</span></div>
+            <div class="colors-grid">
+              <button
+                *ngFor="let color of product.colors"
+                type="button"
+                class="color-btn"
+                [class.selected]="selectedColor === color"
+                (click)="selectedColor = color"
+              >{{ color }}</button>
+            </div>
+          </div>
+
           <!-- Tamanhos -->
           <div *ngIf="hasSizes" class="sizes-section">
             <div class="sizes-label">Tamanho</div>
@@ -187,6 +201,18 @@ import { FooterComponent } from '../footer/footer.component';
     .add-btn.added { background: var(--color-muted); }
     .add-btn:hover { opacity: 0.9; }
 
+    .colors-section { display: flex; flex-direction: column; gap: 10px; }
+    .colors-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-btn {
+      padding: 8px 16px; border-radius: 8px;
+      border: 1.5px solid #d8d5c8; background: #fff;
+      font-size: 0.875rem; font-weight: 500; color: #555;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .color-btn:hover { border-color: #395531; color: #395531; }
+    .color-btn.selected { border-color: #395531; background: #395531; color: #FCFAE5; font-weight: 600; }
+    .selected-color-name { font-weight: 600; color: #395531; text-transform: capitalize; }
+
     .extra-info { display: flex; flex-direction: column; gap: 8px; padding-top: 0.25rem; border-top: 0.5px solid #e4e1d5; }
     .info-row { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: #888; }
     .info-icon { font-size: 1rem; }
@@ -204,6 +230,7 @@ import { FooterComponent } from '../footer/footer.component';
 export class ProductDetailComponent implements OnInit {
   product: Product | undefined;
   selectedSize: string | null = null;
+  selectedColor: string | null = null;
   showSizeWarning = false;
 
   constructor(
@@ -239,9 +266,9 @@ export class ProductDetailComponent implements OnInit {
     if (!this.product) return false;
     if (this.hasSizes) {
       if (!this.selectedSize) return false;
-      return this.cartService.isInCart(this.product.id, this.selectedSize);
+      return this.cartService.isInCart(this.product.id, this.selectedSize, this.selectedColor ?? undefined);
     }
-    return this.cartService.isInCart(this.product.id, undefined);
+    return this.cartService.isInCart(this.product.id, undefined, this.selectedColor ?? undefined);
   }
 
   selectSize(label: string): void {
@@ -273,6 +300,7 @@ export class ProductDetailComponent implements OnInit {
       category: this.product.category ?? '',
       price: this.product.price,
       size: sizeToAdd,
+      color: this.selectedColor ?? undefined,
     });
 
     this.cartService.openCart();

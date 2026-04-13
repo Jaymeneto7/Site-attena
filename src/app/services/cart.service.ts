@@ -8,6 +8,7 @@ export interface CartItem {
   category: string;
   price: number;
   size?: string;
+  color?: string;
   quantity?: number;
 }
 
@@ -30,9 +31,12 @@ export class CartService {
   addItem(item: CartItem): void {
     const itemId = String(item.id);
     const normalizedSize = item.size ?? null;
+    const normalizedColor = item.color ?? null;
 
     const existingItem = this.items.find(
-      (i) => String(i.id) === itemId && (i.size ?? null) === normalizedSize
+      (i) => String(i.id) === itemId &&
+             (i.size ?? null) === normalizedSize &&
+             (i.color ?? null) === normalizedColor
     );
 
     if (existingItem) {
@@ -42,6 +46,7 @@ export class CartService {
         ...item,
         id: itemId,
         size: normalizedSize ?? undefined,
+        color: normalizedColor ?? undefined,
         quantity: item.quantity ?? 1,
         price: Number(item.price) || 0,
       });
@@ -51,43 +56,50 @@ export class CartService {
     this.itemsSubject.next([...this.items]);
   }
 
-  removeItem(id: string | number, size?: string): void {
+  removeItem(id: string | number, size?: string, color?: string): void {
     const itemId = String(id);
     const normalizedSize = size ?? null;
+    const normalizedColor = color ?? null;
     const initialLength = this.items.length;
 
     this.items = this.items.filter(
-      (item) => !(String(item.id) === itemId && (item.size ?? null) === normalizedSize)
+      (item) => !(String(item.id) === itemId &&
+                  (item.size ?? null) === normalizedSize &&
+                  (item.color ?? null) === normalizedColor)
     );
 
     this.itemsSubject.next([...this.items]);
-    if (this.items.length !== initialLength) {
-      this.saveToLocalStorage();
-    }
+    if (this.items.length !== initialLength) this.saveToLocalStorage();
   }
 
-  updateQuantity(id: string | number, quantity: number, size?: string): void {
+  updateQuantity(id: string | number, quantity: number, size?: string, color?: string): void {
     const itemId = String(id);
     const normalizedSize = size ?? null;
+    const normalizedColor = color ?? null;
     const item = this.items.find(
-      (i) => String(i.id) === itemId && (i.size ?? null) === normalizedSize
+      (i) => String(i.id) === itemId &&
+             (i.size ?? null) === normalizedSize &&
+             (i.color ?? null) === normalizedColor
     );
     if (item) {
-      item.quantity = quantity;
       if (quantity <= 0) {
-        this.removeItem(id, size);
+        this.removeItem(id, size, color);
       } else {
+        item.quantity = quantity;
         this.saveToLocalStorage();
         this.itemsSubject.next([...this.items]);
       }
     }
   }
 
-  isInCart(id: string | number, size?: string): boolean {
+  isInCart(id: string | number, size?: string, color?: string): boolean {
     const itemId = String(id);
     const normalizedSize = size ?? null;
+    const normalizedColor = color ?? null;
     return this.items.some(
-      (item) => String(item.id) === itemId && (item.size ?? null) === normalizedSize
+      (item) => String(item.id) === itemId &&
+                (item.size ?? null) === normalizedSize &&
+                (item.color ?? null) === normalizedColor
     );
   }
 

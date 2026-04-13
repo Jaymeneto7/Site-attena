@@ -23,7 +23,7 @@ import { CartService } from '../../services/cart.service';
 
         <div class="nav-actions">
           <div *ngIf="authService.isLogged" class="user-info">
-            <span class="user-name">👋 {{ firstName }}</span>
+            <span class="user-name">π {{ firstName }}</span>
             <div class="account-menu" [class.open]="dropdownOpen" (click)="dropdownOpen = !dropdownOpen" (mouseleave)="dropdownOpen = false">
               <a class="account-btn" (click)="$event.preventDefault()">
                 <span class="account-label">Minha conta</span>

@@ -37,8 +37,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   closeCart(): void { this.showCart = false; }
 
-  removeItem(id: string | number, size?: string): void {
-    this.cartService.removeItem(id, size);
+  clearCart(): void { this.cartService.clearCart(); }
+
+  removeItem(id: string | number, size?: string, color?: string): void {
+    this.cartService.removeItem(id, size, color);
   }
 
   sendWhatsApp(): void {
@@ -46,8 +48,9 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!items.length) return;
     const WHATSAPP_NUMBER = '5562982437603';
     const lines = items.map(i => {
-      const sizeInfo = i.size ? ` (${i.size})` : '';
-      return `• ${i.name}${sizeInfo} x${i.quantity ?? 1} — R$ ${i.price.toFixed(2).replace('.', ',')}`;
+      const details = [i.size, i.color].filter(Boolean).join(', ');
+      const detailsInfo = details ? ` (${details})` : '';
+      return `• ${i.name}${detailsInfo} x${i.quantity ?? 1} — R$ ${i.price.toFixed(2).replace('.', ',')}`;
     }).join('\n');
     const total = this.cartService.getTotalPrice();
     const totalStr = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

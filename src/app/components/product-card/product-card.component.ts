@@ -40,6 +40,16 @@ import { WishlistService } from '../../services/wishlist.service';
             <span class="warning-icon">⚠️</span>
             <span class="warning-text">Selecione um tamanho!</span>
           </div>
+          <!-- Tags de cor -->
+          <div *ngIf="product.colors?.length" class="color-tags">
+            <span
+              *ngFor="let c of product.colors"
+              class="color-tag"
+              [class.selected]="selectedColor === c"
+              (click)="$event.stopPropagation(); selectColor(c)"
+            >{{ c }}</span>
+          </div>
+
           <div class="card-footer">
             <div class="prices">
               <span class="price">R$ {{ product.price }}</span>
@@ -117,6 +127,12 @@ import { WishlistService } from '../../services/wishlist.service';
     .add-btn.added { background: var(--color-muted); }
     .add-btn:hover { opacity: 0.9; }
 
+    .color-tags { display: flex; gap: 4px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .color-tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #d8d5c8; color: #777; background: #fafaf6; cursor: pointer; transition: all 0.15s; }
+    .color-tag:hover { border-color: var(--color-muted); color: var(--color-muted); }
+    .color-tag.selected { border-color: var(--color-muted); background: var(--color-muted); color: var(--color-on-primary); font-weight: 600; }
+    .color-more { font-size: 10px; color: #aaa; }
+
     @media (max-width: 400px) {
       .card-img { height: 140px; }
       .emoji { font-size: 48px; }
@@ -155,6 +171,7 @@ import { WishlistService } from '../../services/wishlist.service';
 export class ProductCardComponent implements OnChanges {
   @Input() product!: Product;
   selectedSize: string | null = null;
+  selectedColor: string | null = null;
   showSizeWarning = false;
   showSuccessMessage = false;
 
@@ -167,6 +184,7 @@ export class ProductCardComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['product']) {
       this.selectedSize = null;
+      this.selectedColor = null;
       this.showSizeWarning = false;
       this.showSuccessMessage = false;
     }
@@ -189,9 +207,9 @@ export class ProductCardComponent implements OnChanges {
   get isInCart(): boolean {
     if (this.hasSizeObjects) {
       if (!this.selectedSize) return false;
-      return this.cartService.isInCart(this.product.id, this.selectedSize);
+      return this.cartService.isInCart(this.product.id, this.selectedSize, this.selectedColor ?? undefined);
     }
-    return this.cartService.isInCart(this.product.id, undefined);
+    return this.cartService.isInCart(this.product.id, undefined, this.selectedColor ?? undefined);
   }
 
   toggleWish(event: Event): void {
@@ -202,6 +220,10 @@ export class ProductCardComponent implements OnChanges {
   selectSize(label: string): void {
     this.selectedSize = label;
     this.showSizeWarning = false;
+  }
+
+  selectColor(color: string): void {
+    this.selectedColor = this.selectedColor === color ? null : color;
   }
 
   addToCart(): void {
@@ -222,6 +244,7 @@ export class ProductCardComponent implements OnChanges {
       category: this.product.category ?? '',
       price: this.product.price,
       size: sizeToAdd,
+      color: this.selectedColor ?? undefined,
     });
 
     this.showSizeWarning = false;
