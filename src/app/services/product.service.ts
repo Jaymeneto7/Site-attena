@@ -196,6 +196,23 @@ export class ProductService {
     this.init();
   }
 
+  async reloadFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      if (data && data.length > 0) {
+        this.products = data.map(row => fromSupabase(row as Record<string, unknown>));
+        this.useSupabase = true;
+        this.ngZone.run(() => this.productsLoaded.next(this.products));
+      }
+    } catch (err) {
+      console.warn('reloadFromSupabase falhou:', err);
+    }
+  }
+
   private async init(): Promise<void> {
   try {
     const { data, error } = await this.supabaseService.client
@@ -294,31 +311,28 @@ export class ProductService {
   }
 
   async updateProduct(product: Product): Promise<void> {
-    if (this.useSupabase) {
-      const { id, ...rest } = product;
-      const payload = toSupabase(rest);
-      console.log('🔄 Supabase update payload:', { id, payload });
+    const { id, ...rest } = product;
+    const payload = toSupabase(rest);
 
-      const { data, error } = await this.supabaseService.client
-        .from('products')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
+    const { data, error } = await this.supabaseService.client
+      .from('products')
+      .update(payload)
+      .eq('id', String(id))
+      .select()
+      .single();
 
-      if (error) {
-        console.error('❌ Supabase update failed:', error, { id, payload });
-        throw error;
-      }
-
-      if (data) {
-        this.products = this.products.map(p => String(p.id) === String(id) ? fromSupabase(data as Record<string, unknown>) : p);
-      }
+    if (!error) {
+      this.useSupabase = true;
+      const updated = data ? fromSupabase(data as Record<string, unknown>) : normalizeProduct({ ...product });
+      this.products = this.products.map(p => String(p.id) === String(id) ? updated : p);
+      return;
     }
+
+    // Supabase falhou — atualiza só local
     const i = this.products.findIndex(p => String(p.id) === String(product.id));
     if (i !== -1) {
       this.products[i] = normalizeProduct({ ...product });
-      if (!this.useSupabase) this.save();
+      this.save();
     }
   }
 
@@ -351,6 +365,21 @@ export class ProductService {
 
   totalStock(p: Product): number {
     return p.sizes.reduce((acc, s) => acc + s.stock, 0);
+  }
+
+  async decrementStockForOrder(items: { id: string | number; size?: string; quantity?: number }[]): Promise<void> {
+    for (const item of items) {
+      if (!item.size) continue;
+      const product = this.products.find((p: Product) => String(p.id) === String(item.id));
+      if (!product) continue;
+      const sizeIndex = product.sizes.findIndex((s: ProductSize) => s.label === item.size);
+      if (sizeIndex === -1) continue;
+      const qty = item.quantity ?? 1;
+      const newSizes = product.sizes.map((s: ProductSize, i: number) =>
+        i === sizeIndex ? { ...s, stock: Math.max(0, s.stock - qty) } : s
+      );
+      await this.updateProduct({ ...product, sizes: newSizes });
+    }
   }
 
   private defaultWhatsappMessage(p: Product): string {

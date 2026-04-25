@@ -4,12 +4,17 @@ import { Router } from '@angular/router';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
 import { WishlistService } from '../../services/wishlist.service';
+import { AuthService } from '../../services/auth.service';
+import { StockNotificationService } from '../../services/stock-notification.service';
+import { LoginModalComponent } from '../login-modal/login-modal.component';
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LoginModalComponent],
   template: `
+    <app-login-modal *ngIf="showLoginModal" (loginSuccess)="onLoginSuccess()" (closeModal)="showLoginModal = false" />
+
     <div class="card-wrapper">
       <div class="card" (click)="goToDetail()">
         <div class="card-img" [style.background]="product.bgColor || '#f4f4f0'">
@@ -18,6 +23,7 @@ import { WishlistService } from '../../services/wishlist.service';
           </span>
           <img *ngIf="product.image" class="card-photo" [src]="product.image" [alt]="product.name" />
           <span *ngIf="!product.image" class="emoji">{{ product.emoji }}</span>
+          <div *ngIf="isOutOfStock" class="out-of-stock-banner">Indisponível</div>
           <button class="wish-btn" [class.wished]="wishlistService.has(product.id)" (click)="toggleWish($event)" title="Lista de desejos">
             {{ wishlistService.has(product.id) ? '♥' : '♡' }}
           </button>
@@ -55,9 +61,17 @@ import { WishlistService } from '../../services/wishlist.service';
               <span class="price">R$ {{ product.price }}</span>
               <span *ngIf="product.originalPrice" class="price-old">R$ {{ product.originalPrice }}</span>
             </div>
-            <button class="add-btn" [class.added]="isInCart" (click)="$event.stopPropagation(); addToCart()">
-              <span *ngIf="!isInCart">🛒 Adicionar</span>
-              <span *ngIf="isInCart">✓ Adicionado</span>
+            <button class="add-btn" [class.added]="isInCart" [disabled]="isOutOfStock" (click)="$event.stopPropagation(); addToCart()">
+              <span *ngIf="isOutOfStock">Indisponível</span>
+              <span *ngIf="!isOutOfStock && !isInCart">🛒 Adicionar</span>
+              <span *ngIf="!isOutOfStock && isInCart">✓ Adicionado</span>
+            </button>
+          </div>
+
+          <div *ngIf="isOutOfStock" class="notify-row">
+            <button class="notify-btn" [class.subscribed]="notifService.isSubscribed(product.id)" (click)="notifyMe($event)" [title]="notifService.isSubscribed(product.id) ? 'Você será avisado!' : 'Avise-me quando estiver disponível'">
+              <span class="bell-icon">{{ notifService.isSubscribed(product.id) ? '🔔' : '🔕' }}</span>
+              <span>{{ notifService.isSubscribed(product.id) ? 'Você será avisado' : 'Avise-me quando disponível' }}</span>
             </button>
           </div>
         </div>
@@ -125,7 +139,27 @@ import { WishlistService } from '../../services/wishlist.service';
     .price-old { font-size: 11px; color: #bbb; text-decoration: line-through; }
     .add-btn { display: flex; align-items: center; gap: 5px; background: var(--color-primary); color: var(--color-on-primary); border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .add-btn.added { background: var(--color-muted); }
-    .add-btn:hover { opacity: 0.9; }
+    .add-btn:hover:not(:disabled) { opacity: 0.9; }
+    .add-btn:disabled { background: #ccc; color: #888; cursor: not-allowed; }
+
+    .out-of-stock-banner {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.55); color: #fff;
+      font-size: 11px; font-weight: 600; text-align: center;
+      padding: 6px 0; letter-spacing: 0.05em; text-transform: uppercase;
+      backdrop-filter: blur(2px);
+    }
+
+    .notify-row { padding: 0 0 4px; }
+    .notify-btn {
+      display: flex; align-items: center; gap: 6px; width: 100%;
+      background: none; border: 1px dashed #ccc; border-radius: 7px;
+      padding: 6px 10px; font-size: 11px; color: #888; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .notify-btn:hover { border-color: #CA5417; color: #CA5417; background: #fff5f0; }
+    .notify-btn.subscribed { border-style: solid; border-color: #CA5417; color: #CA5417; background: #fff5f0; }
+    .bell-icon { font-size: 13px; }
 
     .color-tags { display: flex; gap: 4px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
     .color-tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #d8d5c8; color: #777; background: #fafaf6; cursor: pointer; transition: all 0.15s; }
@@ -174,8 +208,16 @@ export class ProductCardComponent implements OnChanges {
   selectedColor: string | null = null;
   showSizeWarning = false;
   showSuccessMessage = false;
+  showLoginModal = false;
+  private pendingNotify = false;
 
-  constructor(private cartService: CartService, public wishlistService: WishlistService, private router: Router) {}
+  constructor(
+    private cartService: CartService,
+    public wishlistService: WishlistService,
+    private router: Router,
+    public authService: AuthService,
+    public notifService: StockNotificationService
+  ) {}
 
   goToDetail(): void {
     this.router.navigate(['/produto', this.product.id]);
@@ -192,6 +234,11 @@ export class ProductCardComponent implements OnChanges {
 
   get hasSizeObjects(): boolean {
     return Array.isArray(this.product.sizes) && this.product.sizes.length > 0;
+  }
+
+  get isOutOfStock(): boolean {
+    if (!this.product.sizes?.length) return false;
+    return this.product.sizes.every(s => s.stock === 0);
   }
 
   get availableSizes(): { label: string; stock: number }[] {
@@ -224,6 +271,30 @@ export class ProductCardComponent implements OnChanges {
 
   selectColor(color: string): void {
     this.selectedColor = this.selectedColor === color ? null : color;
+  }
+
+  notifyMe(event: Event): void {
+    event.stopPropagation();
+    if (!this.authService.isLogged) {
+      this.pendingNotify = true;
+      this.showLoginModal = true;
+      return;
+    }
+    this.doSubscribe();
+  }
+
+  onLoginSuccess(): void {
+    this.showLoginModal = false;
+    if (this.pendingNotify) {
+      this.pendingNotify = false;
+      this.notifService.loadSubscriptions(this.authService.currentUser!.id).then(() => this.doSubscribe());
+    }
+  }
+
+  private doSubscribe(): void {
+    const user = this.authService.currentUser;
+    if (!user) return;
+    this.notifService.subscribe(this.product.id, user.id, user.email);
   }
 
   addToCart(): void {

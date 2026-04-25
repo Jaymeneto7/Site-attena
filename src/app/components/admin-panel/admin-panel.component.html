@@ -37,12 +37,12 @@
     <aside class="admin-sidebar">
       <button type="button" class="btn-add" (click)="openAddForm()">+ Novo produto</button>
 
-      <div class="sidebar-title">Categorias</div>
+      <div class="sidebar-title">Produtos</div>
       <nav class="sidebar-nav">
         <button
           class="sidebar-item"
-          [class.active]="activeCategory === 'todos'"
-          (click)="activeCategory = 'todos'"
+          [class.active]="adminView === 'produtos' && activeCategory === 'todos'"
+          (click)="adminView = 'produtos'; activeCategory = 'todos'"
         >
           Todos
           <span class="sidebar-count">{{ products.length - hiddenCount }}</span>
@@ -50,19 +50,38 @@
         <button
           *ngFor="let cat of categories"
           class="sidebar-item"
-          [class.active]="activeCategory === cat.key"
-          (click)="activeCategory = cat.key"
+          [class.active]="adminView === 'produtos' && activeCategory === cat.key"
+          (click)="adminView = 'produtos'; activeCategory = cat.key"
         >
           {{ cat.label }}
           <span class="sidebar-count">{{ productsByCategory(cat.key).length }}</span>
         </button>
         <button
           class="sidebar-item sidebar-item-hidden"
-          [class.active]="activeCategory === 'ocultos'"
-          (click)="activeCategory = 'ocultos'"
+          [class.active]="adminView === 'produtos' && activeCategory === 'ocultos'"
+          (click)="adminView = 'produtos'; activeCategory = 'ocultos'"
         >
           Ocultos
           <span class="sidebar-count" [class.count-hidden]="hiddenCount > 0">{{ hiddenCount }}</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-title" style="margin-top:1rem">Pedidos</div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-item" [class.active]="adminView === 'pedidos' && orderFilter === 'todos'" (click)="switchToOrders('todos')">
+          Todos <span class="sidebar-count">{{ orders.length }}</span>
+        </button>
+        <button class="sidebar-item" [class.active]="adminView === 'pedidos' && orderFilter === 'pendente'" (click)="switchToOrders('pendente')">
+          Aguardando pgto <span class="sidebar-count" [class.count-hidden]="pendingOrdersCount > 0">{{ pendingOrdersCount }}</span>
+        </button>
+        <button class="sidebar-item" [class.active]="adminView === 'pedidos' && orderFilter === 'pago'" (click)="switchToOrders('pago')">
+          Pagos <span class="sidebar-count">{{ countByStatus('pago') }}</span>
+        </button>
+        <button class="sidebar-item" [class.active]="adminView === 'pedidos' && orderFilter === 'enviado'" (click)="switchToOrders('enviado')">
+          Enviados <span class="sidebar-count">{{ countByStatus('enviado') }}</span>
+        </button>
+        <button class="sidebar-item" [class.active]="adminView === 'pedidos' && orderFilter === 'entregue'" (click)="switchToOrders('entregue')">
+          Entregues <span class="sidebar-count">{{ countByStatus('entregue') }}</span>
         </button>
       </nav>
 
@@ -73,6 +92,63 @@
 
     <!-- Conteúdo -->
     <main class="admin-content">
+
+      <!-- View: Pedidos -->
+      <ng-container *ngIf="adminView === 'pedidos'">
+        <div class="content-header">
+          <h2>Pedidos — {{ orderFilterLabel }}</h2>
+          <span class="content-count">{{ filteredOrders.length }} pedido(s)</span>
+        </div>
+
+        <div *ngIf="loadingOrders" class="loading-orders">Carregando pedidos…</div>
+
+        <div *ngIf="!loadingOrders && filteredOrders.length === 0" class="empty-state">
+          <p>Nenhum pedido nesta categoria.</p>
+        </div>
+
+        <div class="orders-grid" *ngIf="!loadingOrders && filteredOrders.length > 0">
+          <div class="order-card" *ngFor="let o of filteredOrders">
+            <div class="order-card-header">
+              <div>
+                <div class="order-customer">{{ o.user_name || o.user_email || 'Cliente' }}</div>
+                <div class="order-email">{{ o.user_email }}</div>
+                <div class="order-date">{{ o.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+              </div>
+              <div class="order-right">
+                <span class="status-badge status-{{ o.status }}">{{ statusLabel(o.status) }}</span>
+                <div class="order-total">{{ o.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+              </div>
+            </div>
+
+            <ul class="order-items">
+              <li *ngFor="let item of o.items">
+                <span>{{ item.name }}<span *ngIf="item.size"> ({{ item.size }})</span><span *ngIf="item.color"> — {{ item.color }}</span> x{{ item.quantity ?? 1 }}</span>
+                <span class="item-price">{{ item.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              </li>
+            </ul>
+
+            <div class="order-actions">
+              <button
+                *ngIf="nextStatus(o.status)"
+                class="btn-advance"
+                (click)="advanceStatus(o)"
+              >
+                ✓ Marcar como {{ statusLabel(nextStatus(o.status)!) }}
+              </button>
+              <button
+                *ngIf="o.status !== 'cancelado' && o.status !== 'entregue'"
+                class="btn-cancel"
+                (click)="cancelOrder(o)"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- View: Produtos -->
+      <ng-container *ngIf="adminView === 'produtos'">
       <div class="content-header">
         <h2>{{ activeCategoryLabel }}</h2>
         <span class="content-count">{{ filteredProducts.length }} produto(s)</span>
@@ -113,6 +189,8 @@
         <p>Nenhum produto nesta categoria.</p>
         <button type="button" class="btn-add-inline" (click)="openAddForm()">+ Adicionar produto</button>
       </div>
+      </ng-container>
+
     </main>
   </div>
 

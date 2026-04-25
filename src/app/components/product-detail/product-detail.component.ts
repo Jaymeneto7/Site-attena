@@ -5,15 +5,19 @@ import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { WishlistService } from '../../services/wishlist.service';
+import { AuthService } from '../../services/auth.service';
+import { StockNotificationService } from '../../services/stock-notification.service';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { FooterComponent } from '../footer/footer.component';
+import { LoginModalComponent } from '../login-modal/login-modal.component';
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, NavbarComponent, FooterComponent],
+  imports: [CommonModule, RouterLink, NavbarComponent, FooterComponent, LoginModalComponent],
   template: `
     <app-navbar [showCartBtn]="true" (openCart)="cartService.openCart()" />
+    <app-login-modal *ngIf="showLoginModal" (loginSuccess)="onLoginSuccess()" (closeModal)="showLoginModal = false" />
 
     <div class="page">
 
@@ -89,9 +93,16 @@ import { FooterComponent } from '../footer/footer.component';
           </div>
 
           <!-- Botão adicionar -->
-          <button class="add-btn" [class.added]="isInCart" (click)="addToCart()">
-            <span *ngIf="!isInCart">🛒 Adicionar à sacola</span>
-            <span *ngIf="isInCart">✓ Adicionado à sacola</span>
+          <button class="add-btn" [class.added]="isInCart" [class.out-of-stock]="isOutOfStock" [disabled]="isOutOfStock" (click)="addToCart()">
+            <span *ngIf="isOutOfStock">Produto Indisponível</span>
+            <span *ngIf="!isOutOfStock && !isInCart">🛒 Adicionar à sacola</span>
+            <span *ngIf="!isOutOfStock && isInCart">✓ Adicionado à sacola</span>
+          </button>
+
+          <!-- Avise-me -->
+          <button *ngIf="isOutOfStock" class="notify-btn" [class.subscribed]="notifService.isSubscribed(product!.id)" (click)="notifyMe()">
+            <span>{{ notifService.isSubscribed(product!.id) ? '🔔' : '🔕' }}</span>
+            <span>{{ notifService.isSubscribed(product!.id) ? 'Você será avisado quando disponível' : 'Avise-me quando estiver disponível' }}</span>
           </button>
 
           <!-- Info extra -->
@@ -199,7 +210,17 @@ import { FooterComponent } from '../footer/footer.component';
       transition: opacity 0.15s, background 0.15s; width: 100%;
     }
     .add-btn.added { background: var(--color-muted); }
-    .add-btn:hover { opacity: 0.9; }
+    .add-btn:hover:not(:disabled) { opacity: 0.9; }
+    .add-btn.out-of-stock { background: #ccc; color: #888; cursor: not-allowed; }
+
+    .notify-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; background: none; border: 1.5px dashed #e0bba0;
+      border-radius: 10px; padding: 12px 20px;
+      font-size: 0.9rem; color: #CA5417; cursor: pointer; transition: all 0.15s;
+    }
+    .notify-btn:hover { background: #fff5f0; border-style: solid; }
+    .notify-btn.subscribed { border-style: solid; background: #fff5f0; font-weight: 600; }
 
     .colors-section { display: flex; flex-direction: column; gap: 10px; }
     .colors-grid { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -232,13 +253,17 @@ export class ProductDetailComponent implements OnInit {
   selectedSize: string | null = null;
   selectedColor: string | null = null;
   showSizeWarning = false;
+  showLoginModal = false;
+  private pendingNotify = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private productService: ProductService,
     public cartService: CartService,
-    public wishlistService: WishlistService
+    public wishlistService: WishlistService,
+    public authService: AuthService,
+    public notifService: StockNotificationService
   ) {}
 
   ngOnInit(): void {
@@ -255,6 +280,11 @@ export class ProductDetailComponent implements OnInit {
 
   get hasSizes(): boolean {
     return Array.isArray(this.product?.sizes) && (this.product?.sizes.length ?? 0) > 0;
+  }
+
+  get isOutOfStock(): boolean {
+    if (!this.product?.sizes?.length) return false;
+    return this.product.sizes.every(s => s.stock === 0);
   }
 
   get badgeLabel(): string {
@@ -278,6 +308,30 @@ export class ProductDetailComponent implements OnInit {
 
   toggleWish(): void {
     if (this.product) this.wishlistService.toggle(this.product.id);
+  }
+
+  notifyMe(): void {
+    if (!this.authService.isLogged) {
+      this.pendingNotify = true;
+      this.showLoginModal = true;
+      return;
+    }
+    this.doSubscribe();
+  }
+
+  onLoginSuccess(): void {
+    this.showLoginModal = false;
+    if (this.pendingNotify) {
+      this.pendingNotify = false;
+      const user = this.authService.currentUser!;
+      this.notifService.loadSubscriptions(user.id).then(() => this.doSubscribe());
+    }
+  }
+
+  private doSubscribe(): void {
+    const user = this.authService.currentUser;
+    if (!user || !this.product) return;
+    this.notifService.subscribe(this.product.id, user.id, user.email);
   }
 
   addToCart(): void {

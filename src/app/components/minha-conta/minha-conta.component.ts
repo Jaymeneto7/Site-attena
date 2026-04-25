@@ -5,7 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { WishlistService } from '../../services/wishlist.service';
-import { OrderService, Order } from '../../services/order.service';
+import { OrderService, Order, ORDER_STATUS_LABELS, OrderStatus } from '../../services/order.service';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { Product } from '../../models/product.model';
@@ -134,11 +134,14 @@ type Tab = 'conta' | 'desejos' | 'pedidos';
               <div class="order-card" *ngFor="let o of orders">
                 <div class="order-header">
                   <span class="order-date">{{ o.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
-                  <span class="order-total">{{ o.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  <div class="order-header-right">
+                    <span class="status-badge status-{{ o.status }}">{{ statusLabel(o.status) }}</span>
+                    <span class="order-total">{{ o.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  </div>
                 </div>
                 <ul class="order-items">
                   <li *ngFor="let item of o.items">
-                    {{ item.name }}<span *ngIf="item.size"> ({{ item.size }})</span>
+                    {{ item.name }}<span *ngIf="item.size"> ({{ item.size }})</span><span *ngIf="item.color"> — {{ item.color }}</span>
                     × {{ item.quantity ?? 1 }}
                     <span class="item-price">R$ {{ item.price.toFixed(2) }}</span>
                   </li>
@@ -227,9 +230,19 @@ type Tab = 'conta' | 'desejos' | 'pedidos';
       padding: 1rem 1.25rem;
     }
     .order-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 0.75rem;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 0.75rem; gap: 0.5rem;
     }
+    .order-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .status-pendente  { background: #fff3cd; color: #856404; }
+    .status-pago      { background: #d1e7dd; color: #0f5132; }
+    .status-enviado   { background: #cfe2ff; color: #084298; }
+    .status-entregue  { background: #d1e7dd; color: #0a3622; }
+    .status-cancelado { background: #f8d7da; color: #842029; }
     .order-date { font-size: 0.8rem; color: #aaa; }
     .order-total { font-size: 1rem; font-weight: 600; color: #395531; }
     .order-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -339,6 +352,10 @@ export class MinhaContaComponent implements OnInit, OnDestroy {
     } else {
       this.feedbackError = result.error ?? 'Erro ao salvar.';
     }
+  }
+
+  statusLabel(status: OrderStatus): string {
+    return ORDER_STATUS_LABELS[status];
   }
 
   async loadOrders(): Promise<void> {

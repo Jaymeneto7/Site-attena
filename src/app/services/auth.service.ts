@@ -101,7 +101,7 @@ export class AuthService {
 
   private _mapUser(u: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User {
     const meta = u.user_metadata ?? {};
-    const role: 'admin' | 'cliente' = meta['role'] === 'cliente' ? 'cliente' : 'admin';
+    const role: 'admin' | 'cliente' = meta['role'] === 'admin' ? 'admin' : 'cliente';
     const name = (meta['name'] as string) || (meta['full_name'] as string) || u.email || 'Usuário';
     return { id: u.id, name, email: u.email ?? '', role };
   }

@@ -7,6 +7,7 @@ import { Product, ProductSize } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalComponent } from '../login-modal/login-modal.component';
+import { OrderService, Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_NEXT } from '../../services/order.service';
 
 type CategoryKey = NonNullable<Product['category']>;
 
@@ -22,9 +23,14 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   showLoginModal = false;
   showProductForm = false;
   activeCategory = 'todos';
+  adminView: 'produtos' | 'pedidos' = 'produtos';
   products: Product[] = [];
   editingProduct: Product | null = null;
   private productsSub?: Subscription;
+
+  orders: Order[] = [];
+  loadingOrders = false;
+  orderFilter: OrderStatus | 'todos' = 'todos';
 
   formError = '';
   showSuccessToast = false;
@@ -61,6 +67,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
 
   constructor(
     private productService: ProductService,
+    private orderService: OrderService,
     public authService: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -73,9 +80,8 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
     }
     this.showLoginModal = true;
   } else {
-    this.loadProducts();
+    this.productService.reloadFromSupabase().then(() => this.loadProducts());
 
-    // Escuta quando o Supabase terminar de carregar
     this.productsSub = this.productService.productsLoaded.subscribe(() => {
       this.loadProducts();
     });
@@ -121,7 +127,7 @@ ngOnDestroy(): void {
   onLoginSuccess(): void {
     this.showLoginModal = false;
     if (this.authService.isAdmin) {
-      this.loadProducts();
+      this.productService.reloadFromSupabase().then(() => this.loadProducts());
     } else {
       this.authService.logout().catch(console.error);
       this.showLoginModal = true;
@@ -298,6 +304,58 @@ async toggleHidden(id: string | number): Promise<void> {
     alert(`Erro ao ocultar produto: ${e?.message ?? String(err)}`);
     console.error(err);
   }
+}
+
+async switchToOrders(filter: OrderStatus | 'todos'): Promise<void> {
+  this.adminView = 'pedidos';
+  this.orderFilter = filter;
+  this.loadingOrders = true;
+  this.cdr.detectChanges();
+  this.orders = await this.orderService.getAllOrders();
+  this.loadingOrders = false;
+  this.cdr.detectChanges();
+}
+
+get filteredOrders(): Order[] {
+  if (this.orderFilter === 'todos') return this.orders;
+  return this.orders.filter(o => o.status === this.orderFilter);
+}
+
+get pendingOrdersCount(): number {
+  return this.orders.filter(o => o.status === 'pendente').length;
+}
+
+get orderFilterLabel(): string {
+  if (this.orderFilter === 'todos') return 'Todos';
+  return ORDER_STATUS_LABELS[this.orderFilter];
+}
+
+countByStatus(status: OrderStatus): number {
+  return this.orders.filter(o => o.status === status).length;
+}
+
+statusLabel(status: OrderStatus): string {
+  return ORDER_STATUS_LABELS[status];
+}
+
+nextStatus(status: OrderStatus): OrderStatus | undefined {
+  return ORDER_STATUS_NEXT[status];
+}
+
+async advanceStatus(order: Order): Promise<void> {
+  const next = ORDER_STATUS_NEXT[order.status];
+  if (!next) return;
+  await this.orderService.updateStatus(order.id, next);
+  order.status = next;
+  this.showToast(`Pedido marcado como "${ORDER_STATUS_LABELS[next]}"`);
+  this.cdr.detectChanges();
+}
+
+async cancelOrder(order: Order): Promise<void> {
+  if (!confirm('Cancelar este pedido?')) return;
+  await this.orderService.updateStatus(order.id, 'cancelado');
+  order.status = 'cancelado';
+  this.cdr.detectChanges();
 }
 
 async deleteProduct(id: string | number): Promise<void> {
