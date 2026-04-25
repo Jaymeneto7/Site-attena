@@ -5,12 +5,14 @@ import { RouterOutlet, Router } from '@angular/router';
 import { CartService, CartItem } from './services/cart.service';
 import { OrderService } from './services/order.service';
 import { ProductService } from './services/product.service';
+import { AuthService } from './services/auth.service';
+import { LoginModalComponent } from './components/login-modal/login-modal.component';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet, LoginModalComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
@@ -24,7 +26,9 @@ export class AppComponent implements OnInit, OnDestroy {
   cartItems: CartItem[] = [];
   private cartSubscription?: Subscription;
 
-  constructor(public cartService: CartService, public router: Router, private orderService: OrderService, private productService: ProductService) {}
+  showAuthModal = false;
+
+  constructor(public cartService: CartService, public router: Router, private orderService: OrderService, private productService: ProductService, public authService: AuthService) {}
 
   ngOnInit(): void {
     this.cartSubscription = this.cartService.items$.subscribe(items => {
@@ -50,6 +54,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   openConfirmModal(): void {
+    if (!this.authService.isLogged) {
+      this.showAuthModal = true;
+      return;
+    }
+    this.confirmError = '';
+    this.showConfirmModal = true;
+  }
+
+  onAuthSuccess(): void {
+    this.showAuthModal = false;
     this.confirmError = '';
     this.showConfirmModal = true;
   }

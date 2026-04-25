@@ -436,5 +436,13 @@
   </div>
 </div>
 
+<!-- Modal de login/cadastro (gate do carrinho) -->
+<app-login-modal
+  *ngIf="showAuthModal"
+  [initialTab]="'cadastro'"
+  (loginSuccess)="onAuthSuccess()"
+  (closeModal)="showAuthModal = false"
+/>
+
 <!-- Conteúdo das rotas -->
 <router-outlet />

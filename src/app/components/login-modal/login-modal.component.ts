@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -12,11 +12,14 @@ type Tab = 'login' | 'cadastro';
   templateUrl: './login-modal.component.html',
   styleUrls: ['./login-modal.component.css']
 })
-export class LoginModalComponent {
+export class LoginModalComponent implements OnInit {
+  @Input() initialTab: Tab = 'login';
   @Output() loginSuccess = new EventEmitter<void>();
   @Output() closeModal = new EventEmitter<void>();
 
   tab: Tab = 'login';
+
+  ngOnInit(): void { this.tab = this.initialTab; }
   errorMessage = '';
   loading = false;
 
