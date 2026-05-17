@@ -375,6 +375,7 @@
   background: transparent; color: #6B7280;
   border: 1px solid #d1d5db; cursor: pointer;
 }
+
 /* ── Erro inline no formulário ── */
 .form-error {
   display: flex;
