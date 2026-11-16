@@ -6,6 +6,6 @@
     "enabled": true
   },
   "assets": {
-    "directory": "dist/Atthena/browser"
+    "directory": "dist"
   }
 }
