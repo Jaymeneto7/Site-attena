@@ -27,6 +27,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   editingProduct: Product | null = null;
   private productsSub?: Subscription;
+  private authSub?: Subscription;
 
   orders: Order[] = [];
   loadingOrders = false;
@@ -74,23 +75,27 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-  if (!this.authService.isLogged || !this.authService.isAdmin) {
-    if (this.authService.isLogged && !this.authService.isAdmin) {
-      this.authService.logout().catch(console.error);
-    }
-    this.showLoginModal = true;
-  } else {
-    this.productService.reloadFromSupabase().then(() => this.loadProducts());
+    // Reage à sessão: a sessão do Supabase chega de forma assíncrona,
+    // então o painel não pode decidir só uma vez na hora de abrir.
+    this.authSub = this.authService.user$.subscribe(user => {
+      if (user?.role === 'admin') {
+        this.showLoginModal = false;
+        this.productService.reloadFromSupabase().then(() => this.loadProducts());
+      } else {
+        this.showLoginModal = true;
+      }
+      this.cdr.detectChanges();
+    });
 
     this.productsSub = this.productService.productsLoaded.subscribe(() => {
       this.loadProducts();
     });
   }
-}
 
-ngOnDestroy(): void {
-  this.productsSub?.unsubscribe();
-}
+  ngOnDestroy(): void {
+    this.productsSub?.unsubscribe();
+    this.authSub?.unsubscribe();
+  }
 
   get canUsePanel(): boolean {
     return this.authService.isLogged && this.authService.isAdmin;
@@ -229,144 +234,144 @@ ngOnDestroy(): void {
   }
 
   async submitForm(): Promise<void> {
-  this.formError = '';
-  const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
-  const sizes: ProductSize[] = this.formSizes
-    .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
-    .filter(row => row.label.length > 0);
+    this.formError = '';
+    const colors = this.formData.colorsInput.split(',').map(c => c.trim()).filter(Boolean);
+    const sizes: ProductSize[] = this.formSizes
+      .map(row => ({ label: row.label.trim(), stock: Math.max(0, Math.floor(Number(row.stock) || 0)) }))
+      .filter(row => row.label.length > 0);
 
-  if (!sizes.length) { this.formError = 'Informe ao menos um tamanho com nome.'; return; }
+    if (!sizes.length) { this.formError = 'Informe ao menos um tamanho com nome.'; return; }
 
-  const parsedPrice = Number(String(this.formData.price).replace(',', '.'));
-  const parsedOriginalPrice = this.formData.originalPrice != null
-    ? Number(String(this.formData.originalPrice).replace(',', '.'))
-    : undefined;
+    const parsedPrice = Number(String(this.formData.price).replace(',', '.'));
+    const parsedOriginalPrice = this.formData.originalPrice != null
+      ? Number(String(this.formData.originalPrice).replace(',', '.'))
+      : undefined;
 
-  const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
-    name: this.formData.name.trim(),
-    description: this.formData.description.trim() || undefined,
-    price: parsedPrice,
-    originalPrice: typeof parsedOriginalPrice === 'number' && Number.isFinite(parsedOriginalPrice) && parsedOriginalPrice > 0
-      ? parsedOriginalPrice : undefined,
-    category: this.formData.category,
-    categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
-    badge: this.formData.badge || undefined,
-    sizes,
-    colors: colors.length ? colors : undefined,
-    image: this.formData.image.trim() || undefined,
-    emoji: this.formData.emoji.trim() || '🛍️',
-    bgColor: this.formData.bgColor.trim() || '#f0ede0',
-    whatsappMessage: undefined,
-  };
+    const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
+      name: this.formData.name.trim(),
+      description: this.formData.description.trim() || undefined,
+      price: parsedPrice,
+      originalPrice: typeof parsedOriginalPrice === 'number' && Number.isFinite(parsedOriginalPrice) && parsedOriginalPrice > 0
+        ? parsedOriginalPrice : undefined,
+      category: this.formData.category,
+      categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
+      badge: this.formData.badge || undefined,
+      sizes,
+      colors: colors.length ? colors : undefined,
+      image: this.formData.image.trim() || undefined,
+      emoji: this.formData.emoji.trim() || '🛍️',
+      bgColor: this.formData.bgColor.trim() || '#f0ede0',
+      whatsappMessage: undefined,
+    };
 
-  if (!payload.name || !Number.isFinite(payload.price) || payload.price < 0) {
-    this.formError = 'Preencha nome e preço válidos.';
-    return;
-  }
-
-  try {
-    if (this.editingProduct) {
-      await this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
-      this.loadProducts();
-      this.showToast('Produto atualizado com sucesso!', true);
-    } else {
-      await this.productService.createProduct(payload as Omit<Product, 'id'>);
-      this.loadProducts();
-      this.showToast('Produto cadastrado com sucesso!', true);
+    if (!payload.name || !Number.isFinite(payload.price) || payload.price < 0) {
+      this.formError = 'Preencha nome e preço válidos.';
+      return;
     }
-  } catch (err: unknown) {
-    const supaErr = err as { message?: string; code?: string };
-    this.formError = supaErr?.message ?? 'Erro ao salvar produto. Tente novamente.';
-    console.error(err);
-  }
-}
 
-private showToast(message: string, closeFormAfter = false): void {
-  this.successToastMessage = message;
-  this.showSuccessToast = true;
-  this.cdr.detectChanges();
-  setTimeout(() => {
-    this.showSuccessToast = false;
-    if (closeFormAfter) this.closeForm();
-    this.cdr.detectChanges();
-  }, 2000);
-}
-
-async toggleHidden(id: string | number): Promise<void> {
-  const product = this.products.find(p => String(p.id) === String(id));
-  try {
-    await this.productService.toggleHidden(id);
-    this.loadProducts();
-    const isNowHidden = !product?.hidden;
-    this.showToast(isNowHidden ? 'Produto removido do catálogo' : 'Produto exibido no catálogo');
-  } catch (err: unknown) {
-    const e = err as { message?: string };
-    alert(`Erro ao ocultar produto: ${e?.message ?? String(err)}`);
-    console.error(err);
-  }
-}
-
-async switchToOrders(filter: OrderStatus | 'todos'): Promise<void> {
-  this.adminView = 'pedidos';
-  this.orderFilter = filter;
-  this.loadingOrders = true;
-  this.cdr.detectChanges();
-  this.orders = await this.orderService.getAllOrders();
-  this.loadingOrders = false;
-  this.cdr.detectChanges();
-}
-
-get filteredOrders(): Order[] {
-  if (this.orderFilter === 'todos') return this.orders;
-  return this.orders.filter(o => o.status === this.orderFilter);
-}
-
-get pendingOrdersCount(): number {
-  return this.orders.filter(o => o.status === 'pendente').length;
-}
-
-get orderFilterLabel(): string {
-  if (this.orderFilter === 'todos') return 'Todos';
-  return ORDER_STATUS_LABELS[this.orderFilter];
-}
-
-countByStatus(status: OrderStatus): number {
-  return this.orders.filter(o => o.status === status).length;
-}
-
-statusLabel(status: OrderStatus): string {
-  return ORDER_STATUS_LABELS[status];
-}
-
-nextStatus(status: OrderStatus): OrderStatus | undefined {
-  return ORDER_STATUS_NEXT[status];
-}
-
-async advanceStatus(order: Order): Promise<void> {
-  const next = ORDER_STATUS_NEXT[order.status];
-  if (!next) return;
-  await this.orderService.updateStatus(order.id, next);
-  order.status = next;
-  this.showToast(`Pedido marcado como "${ORDER_STATUS_LABELS[next]}"`);
-  this.cdr.detectChanges();
-}
-
-async cancelOrder(order: Order): Promise<void> {
-  if (!confirm('Cancelar este pedido?')) return;
-  await this.orderService.updateStatus(order.id, 'cancelado');
-  order.status = 'cancelado';
-  this.cdr.detectChanges();
-}
-
-async deleteProduct(id: string | number): Promise<void> {
-  if (confirm('Tem certeza que deseja excluir este produto?')) {
     try {
-      await this.productService.deleteProduct(id);
-      this.loadProducts();
-    } catch (err) {
-      alert('Erro ao excluir produto.');
+      if (this.editingProduct) {
+        await this.productService.updateProduct({ ...(payload as Product), id: this.editingProduct.id });
+        this.loadProducts();
+        this.showToast('Produto atualizado com sucesso!', true);
+      } else {
+        await this.productService.createProduct(payload as Omit<Product, 'id'>);
+        this.loadProducts();
+        this.showToast('Produto cadastrado com sucesso!', true);
+      }
+    } catch (err: unknown) {
+      const supaErr = err as { message?: string; code?: string };
+      this.formError = supaErr?.message ?? 'Erro ao salvar produto. Tente novamente.';
       console.error(err);
     }
   }
-}
+
+  private showToast(message: string, closeFormAfter = false): void {
+    this.successToastMessage = message;
+    this.showSuccessToast = true;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.showSuccessToast = false;
+      if (closeFormAfter) this.closeForm();
+      this.cdr.detectChanges();
+    }, 2000);
+  }
+
+  async toggleHidden(id: string | number): Promise<void> {
+    const product = this.products.find(p => String(p.id) === String(id));
+    try {
+      await this.productService.toggleHidden(id);
+      this.loadProducts();
+      const isNowHidden = !product?.hidden;
+      this.showToast(isNowHidden ? 'Produto removido do catálogo' : 'Produto exibido no catálogo');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      alert(`Erro ao ocultar produto: ${e?.message ?? String(err)}`);
+      console.error(err);
+    }
+  }
+
+  async switchToOrders(filter: OrderStatus | 'todos'): Promise<void> {
+    this.adminView = 'pedidos';
+    this.orderFilter = filter;
+    this.loadingOrders = true;
+    this.cdr.detectChanges();
+    this.orders = await this.orderService.getAllOrders();
+    this.loadingOrders = false;
+    this.cdr.detectChanges();
+  }
+
+  get filteredOrders(): Order[] {
+    if (this.orderFilter === 'todos') return this.orders;
+    return this.orders.filter(o => o.status === this.orderFilter);
+  }
+
+  get pendingOrdersCount(): number {
+    return this.orders.filter(o => o.status === 'pendente').length;
+  }
+
+  get orderFilterLabel(): string {
+    if (this.orderFilter === 'todos') return 'Todos';
+    return ORDER_STATUS_LABELS[this.orderFilter];
+  }
+
+  countByStatus(status: OrderStatus): number {
+    return this.orders.filter(o => o.status === status).length;
+  }
+
+  statusLabel(status: OrderStatus): string {
+    return ORDER_STATUS_LABELS[status];
+  }
+
+  nextStatus(status: OrderStatus): OrderStatus | undefined {
+    return ORDER_STATUS_NEXT[status];
+  }
+
+  async advanceStatus(order: Order): Promise<void> {
+    const next = ORDER_STATUS_NEXT[order.status];
+    if (!next) return;
+    await this.orderService.updateStatus(order.id, next);
+    order.status = next;
+    this.showToast(`Pedido marcado como "${ORDER_STATUS_LABELS[next]}"`);
+    this.cdr.detectChanges();
+  }
+
+  async cancelOrder(order: Order): Promise<void> {
+    if (!confirm('Cancelar este pedido?')) return;
+    await this.orderService.updateStatus(order.id, 'cancelado');
+    order.status = 'cancelado';
+    this.cdr.detectChanges();
+  }
+
+  async deleteProduct(id: string | number): Promise<void> {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
+      try {
+        await this.productService.deleteProduct(id);
+        this.loadProducts();
+      } catch (err) {
+        alert('Erro ao excluir produto.');
+        console.error(err);
+      }
+    }
+  }
 }
