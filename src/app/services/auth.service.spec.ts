@@ -34,13 +34,23 @@ function makeAuthMock(sessionUser: object | null = null) {
 const FAKE_CLIENTE = {
   id: 'uid-1',
   email: 'cliente@test.com',
-  user_metadata: { role: 'cliente', name: 'Cliente Teste' },
+  user_metadata: { name: 'Cliente Teste' },
+  app_metadata: {},
 };
 
 const FAKE_ADMIN = {
   id: 'uid-2',
   email: 'admin@test.com',
-  user_metadata: { role: 'admin', name: 'Admin Teste' },
+  user_metadata: { name: 'Admin Teste' },
+  app_metadata: { role: 'admin' },
+};
+
+// Usuário que tentou se promover gravando role em user_metadata
+const FAKE_FALSO_ADMIN = {
+  id: 'uid-3',
+  email: 'hacker@test.com',
+  user_metadata: { role: 'admin', name: 'Falso Admin' },
+  app_metadata: {},
 };
 
 describe('AuthService', () => {
@@ -106,6 +116,16 @@ describe('AuthService', () => {
     });
   });
 
+  // ── Segurança: role em user_metadata não concede admin ───────────────────
+  describe('sessão com role admin apenas em user_metadata', () => {
+    beforeEach(async () => setup(FAKE_FALSO_ADMIN));
+
+    it('isAdmin deve ser false (só app_metadata vale)', () => {
+      expect(service.isAdmin).toBeFalse();
+      expect(service.currentUser?.role).toBe('cliente');
+    });
+  });
+
   // ── login ─────────────────────────────────────────────────────────────────
   describe('login()', () => {
     beforeEach(async () => setup());
@@ -132,6 +152,13 @@ describe('AuthService', () => {
       mock.spies.signUpSpy.and.resolveTo({ data: { user: FAKE_CLIENTE }, error: null });
       const result = await service.registerCliente('Nome', 'novo@test.com', 'senha123');
       expect(result.ok).toBeTrue();
+    });
+
+    it('não deve enviar role nos metadados do cadastro', async () => {
+      mock.spies.signUpSpy.and.resolveTo({ data: { user: FAKE_CLIENTE }, error: null });
+      await service.registerCliente('Nome', 'novo@test.com', 'senha123');
+      const args = mock.spies.signUpSpy.calls.mostRecent().args[0];
+      expect(args.options.data).toEqual({ name: 'Nome' });
     });
 
     it('deve retornar erro específico quando e-mail já está cadastrado', async () => {

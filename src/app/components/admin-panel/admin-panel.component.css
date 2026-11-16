@@ -160,6 +160,94 @@
 .sidebar-item-hidden.active { background: #555; color: #fff; }
 .count-hidden { background: #e8e0d0 !important; color: #666 !important; }
 
+/* ── Categoria wrapper (item + botão remover) ── */
+.sidebar-item-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sidebar-item-wrapper .sidebar-item {
+  flex: 1;
+  padding-right: 2rem;
+}
+.btn-remove-cat {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.btn-remove-cat:hover { color: #c0392b; background: #fff0ee; }
+
+/* ── Botão Nova categoria ── */
+.btn-new-cat {
+  margin: 6px 1rem 0;
+  padding: 0.4rem 0.75rem;
+  background: none;
+  border: 1px dashed #bbb;
+  color: #666;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: calc(100% - 2rem);
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-new-cat:hover { border-color: #395531; color: #395531; }
+
+/* ── Form Nova categoria ── */
+.category-form {
+  margin: 6px 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.category-input {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  outline: none;
+  box-sizing: border-box;
+}
+.category-input:focus { border-color: #395531; }
+.category-form-actions {
+  display: flex;
+  gap: 6px;
+}
+.btn-cat-confirm {
+  flex: 1;
+  padding: 0.35rem;
+  background: #395531;
+  color: #FCFAE5;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.btn-cat-confirm:hover { opacity: 0.88; }
+.btn-cat-cancel {
+  flex: 1;
+  padding: 0.35rem;
+  background: #eee;
+  color: #555;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.btn-cat-cancel:hover { background: #e0e0e0; }
+.category-form-error { font-size: 0.75rem; color: #c0392b; margin: 0; }
+
+.required-mark { color: #c0392b; font-weight: 700; margin-left: 2px; }
+.select-empty { color: #aaa; border-color: #f0a0a0; }
+
 .sidebar-count {
   background: #f0ede4;
   color: #888;

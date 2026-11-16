@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-type Tab = 'login' | 'cadastro';
+type Tab = 'login' | 'cadastro' | 'admin';
 
 @Component({
   selector: 'app-login-modal',
@@ -24,6 +25,9 @@ export class LoginModalComponent implements OnInit {
   loading = false;
 
   loginData = { email: '', password: '' };
+  adminData = { email: '', password: '' };
+
+  private router = inject(Router, { optional: true });
   cadastroData = { name: '', email: '', password: '', confirm: '' };
 
   constructor(private authService: AuthService) {}
@@ -59,6 +63,30 @@ export class LoginModalComponent implements OnInit {
 
     if (result.ok) { this.loginSuccess.emit(); }
     else { this.errorMessage = result.error ?? 'Erro ao criar conta.'; }
+  }
+
+  async loginAdmin(): Promise<void> {
+    const { email, password } = this.adminData;
+    if (!email || !password) { this.errorMessage = 'Preencha todos os campos.'; return; }
+
+    this.loading = true;
+    this.errorMessage = '';
+    const isAdmin = await this.authService.loginAdmin(email, password);
+    this.loading = false;
+
+    if (isAdmin) {
+      this.loginSuccess.emit();
+      this.router?.navigate(['/admin']);
+      return;
+    }
+
+    // Credenciais válidas mas sem permissão de admin: encerra a sessão aberta
+    if (this.authService.isLogged) {
+      await this.authService.logout();
+      this.errorMessage = 'Esta conta não tem permissão de administrador.';
+    } else {
+      this.errorMessage = 'E-mail ou senha incorretos.';
+    }
   }
 
   async loginGoogle(): Promise<void> {

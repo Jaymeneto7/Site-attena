@@ -103,7 +103,9 @@ export class AppComponent implements OnInit, OnDestroy {
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
     } catch (err) {
       console.error('Erro ao finalizar pedido:', err);
-      this.confirmError = 'Erro ao registrar o pedido. Tente novamente.';
+      const e = err as { message?: string; code?: string; details?: string };
+      const msg = e?.message ?? String(err);
+      this.confirmError = `Erro: ${msg}`;
     } finally {
       this.confirmLoading = false;
     }

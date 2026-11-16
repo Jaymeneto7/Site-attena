@@ -7,10 +7,7 @@ import { AppComponent } from './app/app.component';
 import { provideRouter } from '@angular/router';
 import { routes } from './app/Module/app-app.routes';
 import { provideHttpClient } from '@angular/common/http';
-import { applyRandomTheme } from './app/theme/apply-random-theme';
-
 registerLocaleData(localePt, 'pt-BR');
-applyRandomTheme();
 
 bootstrapApplication(AppComponent, {
   providers: [

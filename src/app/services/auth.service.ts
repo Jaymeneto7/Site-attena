@@ -52,7 +52,7 @@ export class AuthService {
     const { data, error } = await this.supabaseService.client.auth.signUp({
       email,
       password,
-      options: { data: { role: 'cliente', name } }
+      options: { data: { name } }
     });
     if (error) {
       if (error.message.toLowerCase().includes('already registered')) {
@@ -99,9 +99,17 @@ export class AuthService {
     return result.ok && this.isAdmin;
   }
 
-  private _mapUser(u: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User {
+  private _mapUser(u: {
+    id: string;
+    email?: string;
+    user_metadata?: Record<string, unknown>;
+    app_metadata?: Record<string, unknown>;
+  }): User {
     const meta = u.user_metadata ?? {};
-    const role: 'admin' | 'cliente' = meta['role'] === 'admin' ? 'admin' : 'cliente';
+    // O papel vem SEMPRE de app_metadata: só o servidor (service_role) pode alterá-lo.
+    // user_metadata é editável pelo próprio usuário via signUp/updateUser e nunca
+    // deve ser usado para autorização.
+    const role: 'admin' | 'cliente' = u.app_metadata?.['role'] === 'admin' ? 'admin' : 'cliente';
     const name = (meta['name'] as string) || (meta['full_name'] as string) || u.email || 'Usuário';
     return { id: u.id, name, email: u.email ?? '', role };
   }

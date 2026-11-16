@@ -1,5 +1,6 @@
 <app-login-modal
   *ngIf="showLoginModal"
+  [initialTab]="'admin'"
   (loginSuccess)="onLoginSuccess()"
   (closeModal)="goToCatalog()"
 />
@@ -47,15 +48,43 @@
           Todos
           <span class="sidebar-count">{{ products.length - hiddenCount }}</span>
         </button>
-        <button
-          *ngFor="let cat of categories"
-          class="sidebar-item"
-          [class.active]="adminView === 'produtos' && activeCategory === cat.key"
-          (click)="adminView = 'produtos'; activeCategory = cat.key"
-        >
-          {{ cat.label }}
-          <span class="sidebar-count">{{ productsByCategory(cat.key).length }}</span>
-        </button>
+        <div *ngFor="let cat of categories" class="sidebar-item-wrapper">
+          <button
+            class="sidebar-item"
+            [class.active]="adminView === 'produtos' && activeCategory === cat.key"
+            (click)="adminView = 'produtos'; activeCategory = cat.key"
+          >
+            {{ cat.label }}
+            <span class="sidebar-count">{{ productsByCategory(cat.key).length }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn-remove-cat"
+            title="Remover categoria"
+            (click)="removeCategory(cat.key)"
+          >×</button>
+        </div>
+
+        <!-- Nova categoria -->
+        <div *ngIf="!showCategoryForm">
+          <button type="button" class="btn-new-cat" (click)="showCategoryForm = true">+ Nova categoria</button>
+        </div>
+        <div *ngIf="showCategoryForm" class="category-form">
+          <input
+            type="text"
+            class="category-input"
+            placeholder="Nome da categoria"
+            [(ngModel)]="newCategoryLabel"
+            (keydown.enter)="addCategory()"
+            (keydown.escape)="showCategoryForm = false; newCategoryLabel = ''; categoryFormError = ''"
+          />
+          <div class="category-form-actions">
+            <button type="button" class="btn-cat-confirm" (click)="addCategory()">Adicionar</button>
+            <button type="button" class="btn-cat-cancel" (click)="showCategoryForm = false; newCategoryLabel = ''; categoryFormError = ''">Cancelar</button>
+          </div>
+          <p *ngIf="categoryFormError" class="category-form-error">{{ categoryFormError }}</p>
+        </div>
+
         <button
           class="sidebar-item sidebar-item-hidden"
           [class.active]="adminView === 'produtos' && activeCategory === 'ocultos'"
@@ -64,6 +93,53 @@
           Ocultos
           <span class="sidebar-count" [class.count-hidden]="hiddenCount > 0">{{ hiddenCount }}</span>
         </button>
+      </nav>
+
+      <div class="sidebar-title" style="margin-top:1.5rem">Coleções</div>
+      <nav class="sidebar-nav">
+        <button
+          class="sidebar-item"
+          [class.active]="activeCollection === 'todas'"
+          (click)="activeCollection = 'todas'"
+        >
+          Todas
+          <span class="sidebar-count">{{ products.length - hiddenCount }}</span>
+        </button>
+        <div *ngFor="let col of collections" class="sidebar-item-wrapper">
+          <button
+            class="sidebar-item"
+            [class.active]="activeCollection === col.key"
+            (click)="activeCollection = col.key"
+          >
+            {{ col.label }}
+            <span class="sidebar-count">{{ productsByCollection(col.key).length }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn-remove-cat"
+            title="Remover coleção"
+            (click)="removeCollection(col.key)"
+          >×</button>
+        </div>
+
+        <div *ngIf="!showCollectionForm">
+          <button type="button" class="btn-new-cat" (click)="showCollectionForm = true">+ Nova coleção</button>
+        </div>
+        <div *ngIf="showCollectionForm" class="category-form">
+          <input
+            type="text"
+            class="category-input"
+            placeholder="Nome da coleção"
+            [(ngModel)]="newCollectionLabel"
+            (keydown.enter)="addCollection()"
+            (keydown.escape)="showCollectionForm = false; newCollectionLabel = ''; collectionFormError = ''"
+          />
+          <div class="category-form-actions">
+            <button type="button" class="btn-cat-confirm" (click)="addCollection()">Adicionar</button>
+            <button type="button" class="btn-cat-cancel" (click)="showCollectionForm = false; newCollectionLabel = ''; collectionFormError = ''">Cancelar</button>
+          </div>
+          <p *ngIf="collectionFormError" class="category-form-error">{{ collectionFormError }}</p>
+        </div>
       </nav>
 
       <div class="sidebar-title" style="margin-top:1rem">Pedidos</div>
@@ -222,9 +298,18 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="adm-catlabel">Rótulo no catálogo</label>
-          <input id="adm-catlabel" type="text" [(ngModel)]="formData.categoryLabel" name="categoryLabel" placeholder="Ex: Legging feminina">
+        <div class="form-row two">
+          <div class="form-group">
+            <label for="adm-collection">Coleção <span class="required-mark">*</span></label>
+            <select id="adm-collection" [(ngModel)]="formData.collection" name="collection" [class.select-empty]="!formData.collection">
+              <option value="">Selecionar coleção…</option>
+              <option *ngFor="let col of collections" [ngValue]="col.key">{{ col.label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="adm-catlabel">Rótulo no catálogo</label>
+            <input id="adm-catlabel" type="text" [(ngModel)]="formData.categoryLabel" name="categoryLabel" placeholder="Ex: Legging feminina">
+          </div>
         </div>
 
         <div class="form-group">

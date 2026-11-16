@@ -179,14 +179,14 @@ describe('AdminPanelComponent', () => {
   describe('activeCategoryLabel', () => {
     beforeEach(async () => setup());
 
-    it('deve retornar "Todos os produtos" para "todos"', () => {
+    it('deve retornar "Todos" para "todos"', () => {
       component.activeCategory = 'todos';
-      expect(component.activeCategoryLabel).toBe('Todos os produtos');
+      expect(component.activeCategoryLabel).toBe('Todos');
     });
 
-    it('deve retornar "Produtos ocultos" para "ocultos"', () => {
+    it('deve retornar "Ocultos" para "ocultos"', () => {
       component.activeCategory = 'ocultos';
-      expect(component.activeCategoryLabel).toBe('Produtos ocultos');
+      expect(component.activeCategoryLabel).toBe('Ocultos');
     });
 
     it('deve retornar o label da categoria para uma categoria específica', () => {
@@ -333,26 +333,29 @@ describe('AdminPanelComponent', () => {
     });
 
     it('deve definir formError se nome estiver vazio', async () => {
-      component.formSizes      = [{ label: 'M', stock: 5 }];
-      component.formData.name  = '';
-      component.formData.price = 100;
+      component.formSizes           = [{ label: 'M', stock: 5 }];
+      component.formData.name       = '';
+      component.formData.price      = 100;
+      component.formData.collection = 'lancamentos';
       await component.submitForm();
       expect(component.formError).toBe('Preencha nome e preço válidos.');
     });
 
     it('deve definir formError se preço for negativo', async () => {
-      component.formSizes      = [{ label: 'M', stock: 5 }];
-      component.formData.name  = 'Top';
-      component.formData.price = -1;
+      component.formSizes           = [{ label: 'M', stock: 5 }];
+      component.formData.name       = 'Top';
+      component.formData.price      = -1;
+      component.formData.collection = 'lancamentos';
       await component.submitForm();
       expect(component.formError).toBe('Preencha nome e preço válidos.');
     });
 
     it('deve chamar createProduct para novo produto válido', async () => {
-      component.editingProduct = null;
-      component.formData.name  = 'Novo Top';
-      component.formData.price = 99;
-      component.formSizes      = [{ label: 'P', stock: 3 }];
+      component.editingProduct      = null;
+      component.formData.name       = 'Novo Top';
+      component.formData.price      = 99;
+      component.formData.collection = 'lancamentos';
+      component.formSizes           = [{ label: 'P', stock: 3 }];
       await component.submitForm();
       expect(productServiceMock.createProduct).toHaveBeenCalledOnceWith(
         jasmine.objectContaining({ name: 'Novo Top', price: 99 })
@@ -360,10 +363,11 @@ describe('AdminPanelComponent', () => {
     });
 
     it('deve chamar updateProduct ao editar produto existente', async () => {
-      component.editingProduct = PRODUTO_VISIVEL;
-      component.formData.name  = 'Legging Editada';
-      component.formData.price = 150;
-      component.formSizes      = [{ label: 'M', stock: 2 }];
+      component.editingProduct      = PRODUTO_VISIVEL;
+      component.formData.name       = 'Legging Editada';
+      component.formData.price      = 150;
+      component.formData.collection = 'lancamentos';
+      component.formSizes           = [{ label: 'M', stock: 2 }];
       await component.submitForm();
       expect(productServiceMock.updateProduct).toHaveBeenCalledOnceWith(
         jasmine.objectContaining({ name: 'Legging Editada', price: 150, id: '1' })
@@ -372,10 +376,11 @@ describe('AdminPanelComponent', () => {
 
     it('deve definir formError quando updateProduct lança exceção', async () => {
       productServiceMock.updateProduct.and.rejectWith({ message: 'Erro do servidor' });
-      component.editingProduct = PRODUTO_VISIVEL;
-      component.formData.name  = 'Legging';
-      component.formData.price = 100;
-      component.formSizes      = [{ label: 'M', stock: 1 }];
+      component.editingProduct      = PRODUTO_VISIVEL;
+      component.formData.name       = 'Legging';
+      component.formData.price      = 100;
+      component.formData.collection = 'lancamentos';
+      component.formSizes           = [{ label: 'M', stock: 1 }];
       await component.submitForm();
       expect(component.formError).toBe('Erro do servidor');
     });

@@ -27,7 +27,7 @@ import { ProductService } from '../../services/product.service';
         </div>
       </div>
       <div class="bottom">
-        <span class="logo">ATTENA<span class="plus">+</span></span>
+        <span class="logo">site<span class="plus">+</span></span>
         <span class="copy">© 2024 Attena. Todos os direitos reservados.</span>
       </div>
     </footer>

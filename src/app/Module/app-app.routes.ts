@@ -9,27 +9,27 @@ export const routes: Routes = [
   {
     path: '',
     component: CatalogComponent,
-    title: 'ATTENA | Catálogo de Produtos'
+    title: 'site | Catálogo de Produtos'
   },
   {
     path: 'admin',
     component: AdminPanelComponent,
-    title: 'ATTENA | Painel de Administração'
+    title: 'site | Painel de Administração'
   },
   {
     path: 'cart',
     component: CartComponent,
-    title: 'ATTENA | Carrinho'
+    title: 'site | Carrinho'
   },
   {
     path: 'minha-conta',
     component: MinhaContaComponent,
-    title: 'ATTENA | Minha Conta'
+    title: 'site | Minha Conta'
   },
   {
     path: 'produto/:id',
     component: ProductDetailComponent,
-    title: 'ATTENA | Produto'
+    title: 'site | Produto'
   },
   {
     path: '**',

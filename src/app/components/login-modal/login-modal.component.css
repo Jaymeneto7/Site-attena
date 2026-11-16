@@ -140,3 +140,16 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .google-btn:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+/* Acesso admin */
+.admin-link {
+  display: block;
+  margin: 1rem auto 0;
+  background: none; border: none;
+  font-size: 0.8rem;
+  color: #888;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.admin-link:hover { color: var(--color-primary); }
+.login-header p.admin-badge { color: var(--color-primary); font-weight: 600; }
+.login-btn:disabled { opacity: 0.6; cursor: default; }

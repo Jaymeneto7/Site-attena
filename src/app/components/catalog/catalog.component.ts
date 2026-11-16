@@ -8,8 +8,8 @@
     import { HeroComponent } from '../hero/hero.component';
     import { FooterComponent } from '../footer/footer.component';
     import { Subscription } from 'rxjs';
-
-    type FilterKey = 'todos' | 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'masculino';
+    import { CategoryService, Category } from '../../services/category.service';
+    import { CollectionService, Collection } from '../../services/collection.service';
 
     @Component({
       selector: 'app-catalog',
@@ -32,6 +32,19 @@
               >
                 <span>{{ f.label }}</span>
                 <span class="sidebar-count">{{ countByFilter(f.key) }}</span>
+              </button>
+            </nav>
+
+            <div class="sidebar-title" style="margin-top:1.25rem">Coleções</div>
+            <nav class="sidebar-nav">
+              <button
+                *ngFor="let c of collectionFilters"
+                class="sidebar-item"
+                [class.active]="activeCollection === c.key"
+                (click)="setCollection(c.key)"
+              >
+                <span>{{ c.label }}</span>
+                <span class="sidebar-count">{{ countByCollection(c.key) }}</span>
               </button>
             </nav>
           </aside>
@@ -176,21 +189,31 @@
     export class CatalogComponent implements OnInit, OnDestroy {
     allProducts: Product[] = [];
     filteredProducts: Product[] = [];
-    activeFilter: FilterKey = 'todos';
+    activeFilter = 'todos';
+    activeCollection = 'todas';
     private productsSub?: Subscription;
+    private catSub?: Subscription;
+    private colSub?: Subscription;
 
-      filters: { key: FilterKey; label: string }[] = [
-        { key: 'todos',     label: 'Todos' },
-        { key: 'tops',      label: 'Tops' },
-        { key: 'leggings',  label: 'Calças' },
-        { key: 'shorts',    label: 'Shorts' },
-        { key: 'conjuntos', label: 'Conjuntos' },
-        // { key: 'masculino', label: 'Masculino' },
-      ];
+    filters: { key: string; label: string }[] = [];
+    collectionFilters: { key: string; label: string }[] = [];
 
-      constructor(private productService: ProductService, public cartService: CartService) {}
+      constructor(
+        private productService: ProductService,
+        public cartService: CartService,
+        public categoryService: CategoryService,
+        public collectionService: CollectionService
+      ) {}
 
     ngOnInit() {
+      this.catSub = this.categoryService.categories$.subscribe(cats => {
+        this.filters = [{ key: 'todos', label: 'Todos' }, ...cats];
+      });
+
+      this.colSub = this.collectionService.collections$.subscribe(cols => {
+        this.collectionFilters = [{ key: 'todas', label: 'Todas' }, ...cols];
+      });
+
       // Carrega imediatamente se já tiver dados
       this.allProducts = this.productService.getProducts().filter(p => !p.hidden);
       this.filteredProducts = this.allProducts;
@@ -200,33 +223,52 @@
         this.allProducts = products
           .filter(p => !p.hidden)
           .map(p => ({ ...p, sizes: p.sizes.map(s => ({ ...s })) }));
-        this.filteredProducts = this.activeFilter === 'todos'
-          ? this.allProducts
-          : this.allProducts.filter(p => p.category === this.activeFilter);
+        this._applyFilters();
       });
     }
 
     ngOnDestroy() {
   this.productsSub?.unsubscribe();
+  this.catSub?.unsubscribe();
+  this.colSub?.unsubscribe();
 }
 
-      setFilter(key: FilterKey) {
+    private _applyFilters(): void {
+      let result = this.allProducts;
+      if (this.activeFilter !== 'todos') result = result.filter(p => p.category === this.activeFilter);
+      if (this.activeCollection !== 'todas') result = result.filter(p => p.collection === this.activeCollection);
+      this.filteredProducts = result;
+    }
+
+      setFilter(key: string) {
         this.activeFilter = key;
-        this.filteredProducts = key === 'todos'
-          ? this.allProducts
-          : this.allProducts.filter(p => p.category === key);
+        this._applyFilters();
+      }
+
+      setCollection(key: string) {
+        this.activeCollection = key;
+        this._applyFilters();
       }
 
       trackByProductId(index: number, product: Product): number | string {
         return product.id;
       }
 
-      countByFilter(key: FilterKey): number {
-        if (key === 'todos') return this.allProducts.length;
-        return this.allProducts.filter(p => p.category === key).length;
+      countByFilter(key: string): number {
+        let base = key === 'todos' ? this.allProducts : this.allProducts.filter(p => p.category === key);
+        if (this.activeCollection !== 'todas') base = base.filter(p => p.collection === this.activeCollection);
+        return base.length;
+      }
+
+      countByCollection(key: string): number {
+        let base = key === 'todas' ? this.allProducts : this.allProducts.filter(p => p.collection === key);
+        if (this.activeFilter !== 'todos') base = base.filter(p => p.category === this.activeFilter);
+        return base.length;
       }
 
       get activeLabelText(): string {
-        return this.filters.find(f => f.key === this.activeFilter)?.label ?? 'Todos';
+        const cat = this.filters.find(f => f.key === this.activeFilter)?.label ?? 'Todos';
+        const col = this.activeCollection === 'todas' ? '' : ' — ' + (this.collectionFilters.find(c => c.key === this.activeCollection)?.label ?? '');
+        return cat + col;
       }
     }

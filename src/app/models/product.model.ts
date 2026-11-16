@@ -7,8 +7,9 @@ export interface ProductSize {
 export interface Product {
   id: number | string;
   name: string;
-  category?: 'tops' | 'leggings' | 'shorts' | 'conjuntos' | 'masculino';
+  category?: string;
   categoryLabel?: string;
+  collection?: string;
   price: number;
   originalPrice?: number;
   badge?: 'novo' | 'hot' | 'sale';

@@ -8,8 +8,8 @@ import { ProductService } from '../../services/product.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalComponent } from '../login-modal/login-modal.component';
 import { OrderService, Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_NEXT } from '../../services/order.service';
-
-type CategoryKey = NonNullable<Product['category']>;
+import { CategoryService, Category } from '../../services/category.service';
+import { CollectionService, Collection } from '../../services/collection.service';
 
 @Component({
   selector: 'app-admin-panel',
@@ -28,6 +28,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   editingProduct: Product | null = null;
   private productsSub?: Subscription;
   private authSub?: Subscription;
+  private catSub?: Subscription;
 
   orders: Order[] = [];
   loadingOrders = false;
@@ -37,21 +38,25 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
   showSuccessToast = false;
   successToastMessage = '';
 
-  readonly categories: { key: CategoryKey; label: string }[] = [
-    { key: 'tops', label: 'Top' },
-    { key: 'leggings', label: 'Calça' },
-    { key: 'shorts', label: 'Shorts' },
-    { key: 'conjuntos', label: 'Conjuntos' },
-    { key: 'masculino', label: 'Masculino' },
-  ];
+  categories: Category[] = [];
+  showCategoryForm = false;
+  newCategoryLabel = '';
+  categoryFormError = '';
+
+  collections: Collection[] = [];
+  activeCollection = 'todas';
+  showCollectionForm = false;
+  newCollectionLabel = '';
+  collectionFormError = '';
 
   formData = {
     name: '',
     description: '',
     price: 0,
     originalPrice: null as number | null,
-    category: 'tops' as CategoryKey,
+    category: 'tops',
     categoryLabel: '',
+    collection: '',
     colorsInput: '',
     image: '',
     emoji: '🛍️',
@@ -70,6 +75,8 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
     private productService: ProductService,
     private orderService: OrderService,
     public authService: AuthService,
+    public categoryService: CategoryService,
+    public collectionService: CollectionService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
@@ -90,11 +97,22 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
     this.productsSub = this.productService.productsLoaded.subscribe(() => {
       this.loadProducts();
     });
+
+    this.catSub = this.categoryService.categories$.subscribe(cats => {
+      this.categories = cats;
+      this.cdr.detectChanges();
+    });
+
+    this.collectionService.collections$.subscribe(cols => {
+      this.collections = cols;
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
     this.productsSub?.unsubscribe();
     this.authSub?.unsubscribe();
+    this.catSub?.unsubscribe();
   }
 
   get canUsePanel(): boolean {
@@ -103,22 +121,60 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
 
   get filteredProducts(): Product[] {
     if (this.activeCategory === 'ocultos') return this.products.filter(p => p.hidden);
-    if (this.activeCategory === 'todos') return this.products.filter(p => !p.hidden);
-    return this.products.filter(p => !p.hidden && p.category === this.activeCategory);
+    let result = this.products.filter(p => !p.hidden);
+    if (this.activeCategory !== 'todos') result = result.filter(p => p.category === this.activeCategory);
+    if (this.activeCollection !== 'todas') result = result.filter(p => p.collection === this.activeCollection);
+    return result;
   }
 
   get activeCategoryLabel(): string {
-    if (this.activeCategory === 'todos') return 'Todos os produtos';
-    if (this.activeCategory === 'ocultos') return 'Produtos ocultos';
-    return this.categories.find(c => c.key === this.activeCategory)?.label ?? this.activeCategory;
+    const catLabel = this.activeCategory === 'todos' ? 'Todos' : this.activeCategory === 'ocultos' ? 'Ocultos' : (this.categories.find(c => c.key === this.activeCategory)?.label ?? this.activeCategory);
+    const colLabel = this.activeCollection === 'todas' ? '' : ' — ' + (this.collections.find(c => c.key === this.activeCollection)?.label ?? this.activeCollection);
+    return catLabel + colLabel;
   }
 
   get hiddenCount(): number {
     return this.products.filter(p => p.hidden).length;
   }
 
-  productsByCategory(key: CategoryKey): Product[] {
+  productsByCategory(key: string): Product[] {
     return this.products.filter(p => !p.hidden && p.category === key);
+  }
+
+  addCategory(): void {
+    this.categoryFormError = '';
+    const ok = this.categoryService.add(this.newCategoryLabel);
+    if (!ok) {
+      this.categoryFormError = 'Categoria inválida ou já existe.';
+      return;
+    }
+    this.newCategoryLabel = '';
+    this.showCategoryForm = false;
+  }
+
+  removeCategory(key: string): void {
+    this.categoryService.remove(key);
+    if (this.activeCategory === key) this.activeCategory = 'todos';
+  }
+
+  productsByCollection(key: string): Product[] {
+    return this.products.filter(p => !p.hidden && p.collection === key);
+  }
+
+  addCollection(): void {
+    this.collectionFormError = '';
+    const ok = this.collectionService.add(this.newCollectionLabel);
+    if (!ok) {
+      this.collectionFormError = 'Coleção inválida ou já existe.';
+      return;
+    }
+    this.newCollectionLabel = '';
+    this.showCollectionForm = false;
+  }
+
+  removeCollection(key: string): void {
+    this.collectionService.remove(key);
+    if (this.activeCollection === key) this.activeCollection = 'todas';
   }
 
   loadProducts(): void {
@@ -157,6 +213,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
       originalPrice: null,
       category: 'tops',
       categoryLabel: this.labelForCategory('tops'),
+      collection: '',
       colorsInput: '',
       image: '',
       emoji: '🛍️',
@@ -179,8 +236,9 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
       description: product.description ?? '',
       price: product.price,
       originalPrice: product.originalPrice ?? null,
-      category: (product.category ?? 'tops') as CategoryKey,
-      categoryLabel: product.categoryLabel ?? this.labelForCategory((product.category ?? 'tops') as CategoryKey),
+      category: product.category ?? 'tops',
+      categoryLabel: product.categoryLabel ?? this.labelForCategory(product.category ?? 'tops'),
+      collection: product.collection ?? '',
       colorsInput: (product.colors || []).join(', '),
       image: product.image ?? '',
       emoji: product.emoji ?? '🛍️',
@@ -197,7 +255,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
     this.formData.categoryLabel = this.labelForCategory(this.formData.category);
   }
 
-  private labelForCategory(key: CategoryKey): string {
+  private labelForCategory(key: string): string {
     const found = this.categories.find(c => c.key === key);
     return found?.label ?? key;
   }
@@ -247,6 +305,11 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
       ? Number(String(this.formData.originalPrice).replace(',', '.'))
       : undefined;
 
+    if (!this.formData.collection) {
+      this.formError = 'Selecione uma coleção para o produto.';
+      return;
+    }
+
     const payload: Omit<Product, 'id'> & { id?: Product['id'] } = {
       name: this.formData.name.trim(),
       description: this.formData.description.trim() || undefined,
@@ -255,6 +318,7 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
         ? parsedOriginalPrice : undefined,
       category: this.formData.category,
       categoryLabel: this.formData.categoryLabel.trim() || this.labelForCategory(this.formData.category),
+      collection: this.formData.collection,
       badge: this.formData.badge || undefined,
       sizes,
       colors: colors.length ? colors : undefined,

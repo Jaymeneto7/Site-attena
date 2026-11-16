@@ -16,7 +16,7 @@ import { CartService } from '../../services/cart.service';
         <a routerLink="/" class="brand">
           <div class="logo-icon">A</div>
           <div>
-            <div class="logo">ATTENA<span class="plus">+</span></div>
+            <div class="logo">site<span class="plus">+</span></div>
             <div class="slogan">Movimento • Força • Estilo</div>
           </div>
         </a>
